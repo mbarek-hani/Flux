@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\PluginController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
@@ -43,6 +44,19 @@ Route::middleware(['auth'])->group(function () {
         PluginController::class,
         'desactiver',
     ])->name('plugins.desactiver');
+
+    Route::get('/marketplace', [MarketplaceController::class, 'index'])->name(
+        'marketplace.index',
+    );
+    Route::get('/marketplace/install/{id}/stream', [MarketplaceController::class, 'streamInstall'])->name(
+        'marketplace.install.stream',
+    );
+    Route::get('/marketplace/update/{id}/stream', [MarketplaceController::class, 'streamUpdate'])->name(
+        'marketplace.update.stream',
+    );
+    Route::get('/marketplace/uninstall/{id}/stream', [MarketplaceController::class, 'streamUninstall'])->name(
+        'marketplace.uninstall.stream',
+    );
 
     Route::get('/settings', [SettingsController::class, 'index'])->name(
         'settings.index',
