@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -35,4 +34,7 @@ return [
         ],
     ],
 
+    'fluxHUB' => [
+        'url' => env('FLUXHUB_URL', 'http://localhost:8080'),
+    ],
 ];
