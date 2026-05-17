@@ -96,6 +96,11 @@
                             'label' => 'Plugins',
                             'icon'  => 'puzzle',
                         ])
+                        @include('layouts.sidebar-link', [
+                            'route' => 'marketplace.index',
+                            'label' => 'Marketplace',
+                            'icon'  => 'shopping-cart',
+                        ])
                     </div>
 
                     {{-- Liens ajoutés par les plugins --}}
@@ -263,6 +268,11 @@
                             'route' => 'plugins.index',
                             'hover' => 'Plugins',
                             'icon'  => 'puzzle',
+                        ])
+                        @include('layouts.sidebar-link', [
+                            'route' => 'marketplace.index',
+                            'hover' => 'Marketplace',
+                            'icon'  => 'shopping-cart',
                         ])
                     </div>
 
