@@ -1,0 +1,132 @@
+/* ═══════════════════════════════════════════
+   Marketplace CSS styles
+   ═══════════════════════════════════════════ */
+
+/* Tabs Navigation */
+.p-tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--gray-200);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.p-tab {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--gray-500);
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+}
+
+.p-tab:hover {
+    color: var(--gray-900);
+    background-color: var(--gray-100);
+}
+
+.p-tab--active {
+    color: var(--color-primary);
+    background-color: var(--gray-100);
+    font-weight: 600;
+}
+
+/* Progress bar inside the modal */
+.c-progress-container {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.c-progress-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: 0.25rem;
+}
+
+.c-progress-bar {
+    width: 100%;
+    height: 0.625rem;
+    background-color: var(--gray-200);
+    border-radius: 9999px;
+    overflow: hidden;
+    position: relative;
+}
+
+.c-progress-bar__fill {
+    height: 100%;
+    background-color: var(--color-primary);
+    border-radius: 9999px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.c-progress-status {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+    font-weight: 500;
+    text-align: center;
+}
+
+/* Console logs / Steps log in modal */
+.c-progress-steps {
+    background-color: var(--gray-900);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    max-height: 12rem;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: var(--gray-100);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border: 1px solid var(--gray-700);
+}
+
+.c-progress-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: fadeIn 0.2s ease-in;
+}
+
+.c-progress-step--success {
+    color: var(--success-accent);
+}
+
+.c-progress-step--error {
+    color: var(--error-accent);
+}
+
+.c-progress-step__icon {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+}
+
+.c-progress-action-btn {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: flex-end;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(2px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Glassmorphism details card */
+.p-marketplace-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.p-marketplace-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
