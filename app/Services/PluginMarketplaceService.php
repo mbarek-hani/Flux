@@ -40,22 +40,14 @@ class PluginMarketplaceService
             if ($response->successful()) {
                 return $response->json();
             }
+            throw new \Exception("Code HTTP " . $response->status() . " retourné par le registre");
         } catch (\Throwable $e) {
             Log::error(
                 'Erreur de communication avec le registre : '.
                     $e->getMessage(),
             );
+            throw $e;
         }
-
-        return [
-            'data' => [],
-            'meta' => [
-                'total' => 0,
-                'page' => 1,
-                'page_size' => $pageSize,
-                'total_pages' => 0,
-            ],
-        ];
     }
 
     /**
@@ -261,12 +253,12 @@ class PluginMarketplaceService
         $onProgress('Enregistrement en base de données...', 99);
 
         Plugin::updateOrCreate(
-            ['identifiant' => $pluginId],
+            ['identifiant' => $folderName],
             [
                 'nom' => $manifestContent['nom'] ?? $pluginName,
                 'version' => $manifestContent['version'] ?? $pluginVersion,
                 'description' => $manifestContent['description'] ?? '',
-                'auteur' => $manifestContent['auteur'] ?? 'Inconnu',
+                'auteur' => $manifestContent['auteur'] ?? $manifestContent['author'] ?? 'Inconnu',
                 'installe' => true,
                 'metadonnees' => $manifestContent,
                 'installe_le' => now(),
@@ -287,6 +279,12 @@ class PluginMarketplaceService
     ): bool {
         $onProgress('Recherche du plugin dans le système...', 15);
         $plugin = Plugin::where('identifiant', $pluginId)->first();
+        if (! $plugin) {
+            $remoteDetails = $this->getPluginDetails($pluginId);
+            if ($remoteDetails && isset($remoteDetails['name'])) {
+                $plugin = Plugin::where('identifiant', $remoteDetails['name'])->first();
+            }
+        }
         if (! $plugin) {
             throw new Exception(
                 "Le plugin n'est pas répertorié dans le système",

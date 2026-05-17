@@ -48,6 +48,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/marketplace', [MarketplaceController::class, 'index'])->name(
         'marketplace.index',
     );
+    Route::get('/marketplace/{id}', [MarketplaceController::class, 'show'])->name(
+        'marketplace.show',
+    );
     Route::get('/marketplace/install/{id}/stream', [MarketplaceController::class, 'streamInstall'])->name(
         'marketplace.install.stream',
     );

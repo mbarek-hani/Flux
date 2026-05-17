@@ -14,27 +14,17 @@
                 </div>
             </div>
 
-            {{-- Barre de filtres et recherche --}}
-            <div class="p-row p-row--between p-row--wrap u-mb-3" style="gap: 1rem;">
-                {{-- Onglets de filtrage --}}
-                <div class="p-tabs" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
-                    <a href="{{ route('marketplace.index', ['filter' => 'all', 'search' => $search]) }}" 
-                       class="p-tab {{ $filter === 'all' ? 'p-tab--active' : '' }}">
-                        Tous
-                    </a>
-                    <a href="{{ route('marketplace.index', ['filter' => 'installed', 'search' => $search]) }}" 
-                       class="p-tab {{ $filter === 'installed' ? 'p-tab--active' : '' }}">
-                        Installés
-                    </a>
-                    <a href="{{ route('marketplace.index', ['filter' => 'available', 'search' => $search]) }}" 
-                       class="p-tab {{ $filter === 'available' ? 'p-tab--active' : '' }}">
-                        Disponibles
-                    </a>
+            {{-- Message d'erreur s'il y a un échec de connexion au registre --}}
+            @if(isset($error) && $error)
+                <div class="u-mb-3">
+                    <x-alert type="erreur" :message="$error" />
                 </div>
+            @endif
 
+            {{-- Barre de filtres et recherche --}}
+            <div class="p-row p-row--between p-row--wrap u-mb-3" style="gap: 1rem; justify-content: flex-end;">
                 {{-- Formulaire de recherche --}}
                 <form method="GET" action="{{ route('marketplace.index') }}" class="p-row" style="flex-grow: 1; max-width: 24rem;">
-                    <input type="hidden" name="filter" value="{{ $filter }}">
                     <div style="flex-grow: 1;">
                         <x-input 
                             name="search" 
@@ -44,15 +34,15 @@
                         />
                     </div>
                     <x-button type="submit" variant="primary">
-                        <x-custom-icon name="funnel" class="c-icon--xs" />
-                        <span>Filtrer</span>
+                        <x-custom-icon name="magnifying-glass" class="c-icon--xs" />
+                        <span>Recherche</span>
                     </x-button>
                 </form>
             </div>
 
             {{-- Grille des plugins --}}
             @if(empty($plugins))
-                <x-card>
+                <x-card class="u-mt-4" style="margin-top: 1.5rem;">
                     <div class="p-empty">
                         <x-custom-icon name="puzzle" class="p-empty__icon" />
                         <h3 class="p-empty__title">Aucun plugin trouvé</h3>
@@ -62,85 +52,54 @@
                     </div>
                 </x-card>
             @else
-                <div class="p-grid p-grid--1 p-grid--2 p-grid--3 p-grid--gap-md">
+                <div class="p-grid p-grid--1 p-grid--2 p-grid--3 p-grid--gap-md u-mt-4" style="margin-top: 1.5rem;">
                     @foreach($plugins as $plugin)
-                        <x-card class="p-marketplace-card u-h-full u-flex-col">
-                            <div class="u-flex-1">
-                                <div class="p-row p-mb-1">
-                                    <x-custom-icon name="puzzle" class="c-icon--sm u-text-gray-400" />
-                                    <h3 class="p-section__title u-flex-1">
-                                        {{ $plugin['nom'] }}
-                                    </h3>
-                                    <span class="p-text--xs u-text-gray-400">v{{ $plugin['current_version'] }}</span>
-                                </div>
-
-                                @if($plugin['description'])
-                                    <p class="p-text p-mb-2" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; height: 3.75rem; margin-top: 0.5rem;">
-                                        {{ $plugin['description'] }}
-                                    </p>
-                                @endif
-
-                                <div class="p-row p-mb-2 p-row--wrap" style="gap: 0.375rem; margin-top: 0.5rem;">
-                                    {{-- État d'installation --}}
-                                    @if($plugin['status'] === 'installed')
-                                        <span class="p-badge p-badge--success">
-                                            Installé (v{{ $plugin['installed_version'] }})
-                                        </span>
-                                        @if($plugin['actif'])
-                                            <span class="p-badge p-badge--info">Actif</span>
-                                        @else
-                                            <span class="p-badge p-badge--neutral">Inactif</span>
-                                        @endif
-                                        @if($plugin['update_available'])
-                                            <span class="p-badge p-badge--warning">Mise à jour dispo</span>
-                                        @endif
-                                    @else
-                                        <span class="p-badge p-badge--neutral">Disponible</span>
-                                    @endif
-                                </div>
-
-                                {{-- Métadonnées --}}
-                                <div class="p-stack--sm p-mt-2" style="border-top: 1px solid var(--gray-100); padding-top: 0.5rem; font-size: 0.75rem; color: var(--gray-600);">
-                                    <div class="p-row p-row--between">
-                                        <span>Auteur :</span>
-                                        <span class="p-text--bold">{{ $plugin['author'] }}</span>
+                        <x-card class="p-marketplace-card u-h-full u-flex-col" style="cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid var(--gray-200); position: relative; overflow: hidden;" @click="window.location.href = '{{ route('marketplace.show', $plugin['id']) }}'">
+                            <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--color-primary) 0%, var(--info-accent) 100%);"></div>
+                            
+                            <div class="u-flex-1" style="padding-top: 0.5rem;">
+                                <div class="p-row p-mb-1" style="align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                    <div class="p-row" style="align-items: center; gap: 0.5rem;">
+                                        <x-custom-icon name="puzzle" class="c-icon--sm u-text-gray-400" />
+                                        <h3 class="p-section__title" style="margin: 0; font-size: 1.05rem; font-weight: 600; color: var(--gray-900);">
+                                            {{ $plugin['nom'] }}
+                                        </h3>
                                     </div>
-                                    <div class="p-row p-row--between">
-                                        <span>Téléchargements :</span>
-                                        <div class="p-row" style="gap: 0.25rem;">
-                                            <x-custom-icon name="arrow-trending-down" class="c-icon--xs" style="transform: rotate(180deg);" />
-                                            <span class="p-text--bold">{{ number_format($plugin['total_downloads']) }}</span>
-                                        </div>
+                                    <span class="p-badge p-badge--neutral" style="font-size: 0.7rem; font-weight: 600;">{{ $plugin['current_version'] }}</span>
+                                </div>
+
+                                <div class="p-row p-row--between" style="align-items: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed var(--gray-100);">
+                                    <div class="p-row" style="align-items: center; gap: 0.375rem; color: var(--gray-500); font-size: 0.75rem;">
+                                        <x-custom-icon name="arrow-trending-down" class="c-icon--xs" style="transform: rotate(180deg);" />
+                                        <span class="p-text--bold">{{ number_format($plugin['total_downloads']) }}</span>
+                                    </div>
+                                    
+                                    <div>
+                                        @if($plugin['status'] === 'installed')
+                                            <span class="p-badge p-badge--success" style="font-size: 0.7rem;">
+                                                Installé
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
 
-                            {{-- Footer et actions --}}
-                            <div class="p-card-footer u-justify-between p-mt-2">
-                                @if($plugin['repo_url'])
-                                    <x-button href="{{ $plugin['repo_url'] }}" target="_blank" size="sm" variant="default" title="Code source">
-                                        <x-custom-icon name="code" class="c-icon--xs" />
-                                        <span>Dépôt</span>
-                                    </x-button>
-                                @else
-                                    <div></div>
-                                @endif
-
+                            <div class="p-card-footer u-justify-end p-mt-2" style="border-top: none; padding-top: 0.5rem;" @click.stop>
                                 <div class="p-actions">
                                     @if($plugin['status'] === 'installed')
                                         @if($plugin['update_available'])
-                                            <x-button variant="primary" size="sm" @click="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'mise_a_jour')" title="Mettre à jour">
+                                            <x-button variant="primary" size="sm" @click.stop="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'mise_a_jour')" title="Mettre à jour" style="border-radius: 0.375rem; font-weight: 500;">
                                                 <x-custom-icon name="arrow-path" class="c-icon--xs animate-spin" style="animation-duration: 3s;" />
                                                 <span>Mettre à jour</span>
                                             </x-button>
                                         @endif
                                         
-                                        <x-button variant="danger" size="sm" @click="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'desinstallation')" title="Désinstaller">
+                                        <x-button variant="danger" size="sm" @click.stop="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'desinstallation')" title="Désinstaller" style="border-radius: 0.375rem; font-weight: 500;">
                                             <x-custom-icon name="trash" class="c-icon--xs" />
                                             <span>Désinstaller</span>
                                         </x-button>
                                     @else
-                                        <x-button variant="primary" size="sm" @click="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'installation')" title="Installer">
+                                        <x-button variant="primary" size="sm" @click.stop="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'installation')" title="Installer" style="border-radius: 0.375rem; font-weight: 500; background: linear-gradient(135deg, var(--color-primary) 0%, #059669 100%); border: none; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);">
                                             <x-custom-icon name="shopping-cart" class="c-icon--xs" />
                                             <span>Installer</span>
                                         </x-button>
@@ -157,13 +116,13 @@
                         <span class="p-text--xs">Page {{ $meta['page'] }} sur {{ $meta['total_pages'] }} (Total : {{ $meta['total'] }} plugins)</span>
                         <div class="p-actions">
                             @if($meta['page'] > 1)
-                                <x-button href="?page={{ $meta['page'] - 1 }}&search={{ $search }}&filter={{ $filter }}" size="sm">
+                                <x-button href="?page={{ $meta['page'] - 1 }}&search={{ $search }}" size="sm">
                                     <x-custom-icon name="chevron-left" class="c-icon--xs" />
                                     <span>Précédent</span>
                                 </x-button>
                             @endif
                             @if($meta['page'] < $meta['total_pages'])
-                                <x-button href="?page={{ $meta['page'] + 1 }}&search={{ $search }}&filter={{ $filter }}" size="sm">
+                                <x-button href="?page={{ $meta['page'] + 1 }}&search={{ $search }}" size="sm">
                                     <span>Suivant</span>
                                     <x-custom-icon name="chevron-right" class="c-icon--xs" />
                                 </x-button>

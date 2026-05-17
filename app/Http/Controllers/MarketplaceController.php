@@ -18,22 +18,32 @@ class MarketplaceController extends Controller
     {
         $search = $request->query('search', '');
         $page = (int) $request->query('page', 1);
-        $filter = $request->query('filter', 'all');
+        $error = null;
 
-        $registryData = $this->service->getPlugins($search, $page);
-
-        $remotePlugins = $registryData['data'] ?? [];
-        $meta = $registryData['meta'] ?? [
-            'total' => 0,
-            'page' => 1,
-            'page_size' => 20,
-            'total_pages' => 1,
-        ];
+        try {
+            $registryData = $this->service->getPlugins($search, $page);
+            $remotePlugins = $registryData['data'] ?? [];
+            $meta = $registryData['meta'] ?? [
+                'total' => 0,
+                'page' => 1,
+                'page_size' => 20,
+                'total_pages' => 1,
+            ];
+        } catch (\Throwable $e) {
+            $remotePlugins = [];
+            $meta = [
+                'total' => 0,
+                'page' => 1,
+                'page_size' => 20,
+                'total_pages' => 1,
+            ];
+            $error = "Impossible de se connecter au registre de plugins. Veuillez vérifier votre connexion ou réessayer plus tard.";
+        }
 
         // Enrichir avec l'état local
         $plugins = [];
         foreach ($remotePlugins as $remote) {
-            $local = Plugin::where('identifiant', $remote['id'])->first();
+            $local = Plugin::where('identifiant', $remote['name'])->first();
 
             $status = 'not_installed';
             $installedVersion = null;
@@ -45,10 +55,20 @@ class MarketplaceController extends Controller
                 $installedVersion = $local->version;
                 $actif = $local->actif;
 
-                // Si la version locale est différente de la version du registre, mise à jour disponible
-                if ($local->version !== $remote['current_version']) {
+                $remoteVer = ltrim($remote['current_version'], 'vV');
+                $localVer = ltrim($local->version, 'vV');
+                if ($localVer !== $remoteVer) {
                     $updateAvailable = true;
                 }
+            }
+
+            $currentVer = $remote['current_version'];
+            if (!str_starts_with(strtolower($currentVer), 'v')) {
+                $currentVer = 'v' . $currentVer;
+            }
+            $installedVer = $installedVersion;
+            if ($installedVer && !str_starts_with(strtolower($installedVer), 'v')) {
+                $installedVer = 'v' . $installedVer;
             }
 
             $enriched = [
@@ -56,27 +76,75 @@ class MarketplaceController extends Controller
                 'nom' => $remote['name'],
                 'author' => $remote['author'] ?? 'Inconnu',
                 'description' => $remote['description'] ?? '',
-                'current_version' => $remote['current_version'],
+                'current_version' => $currentVer,
                 'total_downloads' => $remote['total_downloads'] ?? 0,
                 'repo_url' => $remote['repo_url'] ?? null,
                 'status' => $status,
-                'installed_version' => $installedVersion,
+                'installed_version' => $installedVer,
                 'update_available' => $updateAvailable,
                 'actif' => $actif,
             ];
 
-            // Appliquer le filtre localement
-            if ($filter === 'installed' && $status !== 'installed') {
-                continue;
-            }
-            if ($filter === 'available' && $status !== 'not_installed') {
-                continue;
-            }
-
             $plugins[] = $enriched;
         }
 
-        return view('marketplace.index', compact('plugins', 'search', 'page', 'filter', 'meta'));
+        return view('marketplace.index', compact('plugins', 'search', 'page', 'meta', 'error'));
+    }
+
+    /**
+     * Affiche les détails d'un plugin du Marketplace.
+     */
+    public function show(string $id)
+    {
+        $remote = $this->service->getPluginDetails($id);
+        if (!$remote) {
+            return redirect()->route('marketplace.index')->with('erreur', 'Impossible de récupérer les détails du plugin.');
+        }
+
+        $local = Plugin::where('identifiant', $remote['name'])->first();
+
+        $status = 'not_installed';
+        $installedVersion = null;
+        $updateAvailable = false;
+        $actif = false;
+
+        if ($local && $local->installe) {
+            $status = 'installed';
+            $installedVersion = $local->version;
+            $actif = $local->actif;
+
+            $remoteVer = ltrim($remote['current_version'], 'vV');
+            $localVer = ltrim($local->version, 'vV');
+            if ($localVer !== $remoteVer) {
+                $updateAvailable = true;
+            }
+        }
+
+        $currentVer = $remote['current_version'];
+        if (!str_starts_with(strtolower($currentVer), 'v')) {
+            $currentVer = 'v' . $currentVer;
+        }
+        $installedVer = $installedVersion;
+        if ($installedVer && !str_starts_with(strtolower($installedVer), 'v')) {
+            $installedVer = 'v' . $installedVer;
+        }
+
+        $plugin = [
+            'id' => $remote['id'],
+            'nom' => $remote['name'],
+            'author' => $remote['author'] ?? 'Inconnu',
+            'description' => $remote['description'] ?? '',
+            'current_version' => $currentVer,
+            'total_downloads' => $remote['total_downloads'] ?? 0,
+            'repo_url' => $remote['repo_url'] ?? null,
+            'licence' => $remote['licence'] ?? 'MIT',
+            'status' => $status,
+            'installed_version' => $installedVer,
+            'update_available' => $updateAvailable,
+            'actif' => $actif,
+        ];
+
+        return view('marketplace.show', compact('plugin'));
     }
 
     /**
