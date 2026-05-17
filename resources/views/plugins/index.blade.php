@@ -11,7 +11,7 @@
                         <x-custom-icon name="puzzle" class="p-empty__icon" />
                         <h3 class="p-empty__title">Aucun plugin détecté</h3>
                         <p class="p-empty__text">
-                            Placez vos plugins dans le dossier <code class="p-code">/plugins</code>
+                            Placez vos plugins dans le dossier <code class="p-code">/plugins</code> manuellement ou va sur <a href="/marketplace" style="color: var(--color-primary);text-decoration: underline;">Marketplace</a> pour découvrir et installer des plugins développer par la communauté.
                         </p>
                     </div>
                 </x-card>
