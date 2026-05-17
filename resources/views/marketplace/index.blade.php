@@ -14,7 +14,6 @@
                 </div>
             </div>
 
-            {{-- Message d'erreur s'il y a un échec de connexion au registre --}}
             @if(isset($error) && $error)
                 <div class="u-mb-3">
                     <x-alert type="erreur" :message="$error" />
@@ -54,7 +53,7 @@
             @else
                 <div class="p-grid p-grid--1 p-grid--2 p-grid--3 p-grid--gap-md u-mt-4" style="margin-top: 1.5rem;">
                     @foreach($plugins as $plugin)
-                        <x-card class="p-marketplace-card u-h-full u-flex-col" style="cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid var(--gray-200); position: relative; overflow: hidden;" @click="window.location.href = '{{ route('marketplace.show', $plugin['id']) }}'">
+                        <x-card style="cursor: pointer;" @click="window.location.href = '{{ route('marketplace.show', $plugin['id']) }}'">
                             <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--color-primary) 0%, var(--info-accent) 100%);"></div>
                             
                             <div class="u-flex-1" style="padding-top: 0.5rem;">
@@ -70,8 +69,7 @@
 
                                 <div class="p-row p-row--between" style="align-items: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed var(--gray-100);">
                                     <div class="p-row" style="align-items: center; gap: 0.375rem; color: var(--gray-500); font-size: 0.75rem;">
-                                        <x-custom-icon name="arrow-trending-down" class="c-icon--xs" style="transform: rotate(180deg);" />
-                                        <span class="p-text--bold">{{ number_format($plugin['total_downloads']) }}</span>
+                                        <span class="p-text--bold">{{ number_format($plugin['total_downloads']) }} Téléchargement</span>
                                     </div>
                                     
                                     <div>
@@ -88,20 +86,17 @@
                                 <div class="p-actions">
                                     @if($plugin['status'] === 'installed')
                                         @if($plugin['update_available'])
-                                            <x-button variant="primary" size="sm" @click.stop="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'mise_a_jour')" title="Mettre à jour" style="border-radius: 0.375rem; font-weight: 500;">
-                                                <x-custom-icon name="arrow-path" class="c-icon--xs animate-spin" style="animation-duration: 3s;" />
-                                                <span>Mettre à jour</span>
+                                            <x-button variant="primary" size="sm" @click.stop="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'mise_a_jour')" title="Mettre à jour">
+                                                Mettre à jour
                                             </x-button>
                                         @endif
                                         
-                                        <x-button variant="danger" size="sm" @click.stop="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'desinstallation')" title="Désinstaller" style="border-radius: 0.375rem; font-weight: 500;">
-                                            <x-custom-icon name="trash" class="c-icon--xs" />
-                                            <span>Désinstaller</span>
+                                        <x-button variant="danger" size="sm" @click.stop="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'desinstallation')" title="Désinstaller">
+                                            Désinstaller
                                         </x-button>
                                     @else
-                                        <x-button variant="primary" size="sm" @click.stop="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'installation')" title="Installer" style="border-radius: 0.375rem; font-weight: 500; background: linear-gradient(135deg, var(--color-primary) 0%, #059669 100%); border: none; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);">
-                                            <x-custom-icon name="shopping-cart" class="c-icon--xs" />
-                                            <span>Installer</span>
+                                        <x-button variant="primary" size="sm" @click.stop="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'installation')" title="Installer">
+                                            Installer
                                         </x-button>
                                     @endif
                                 </div>
@@ -134,7 +129,6 @@
 
         </div>
 
-        {{-- Modal de progression en temps réel (SSE) --}}
         <x-modal name="progress-modal" focusable>
             <div class="c-progress-container">
                 <h3 class="c-progress-title">
