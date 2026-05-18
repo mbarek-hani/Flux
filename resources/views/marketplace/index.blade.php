@@ -5,7 +5,7 @@
 
     <div class="p-page" x-data="marketplaceInstaller()">
         <div class="p-container p-container--lg">
-            
+
             {{-- En-tête de la page --}}
             <div class="p-page__header u-mb-3">
                 <div>
@@ -14,21 +14,15 @@
                 </div>
             </div>
 
-            @if(isset($error) && $error)
-                <div class="u-mb-3">
-                    <x-alert type="erreur" :message="$error" />
-                </div>
-            @endif
-
             {{-- Barre de filtres et recherche --}}
             <div class="p-row p-row--between p-row--wrap u-mb-3" style="gap: 1rem; justify-content: flex-end;">
                 {{-- Formulaire de recherche --}}
                 <form method="GET" action="{{ route('marketplace.index') }}" class="p-row" style="flex-grow: 1; max-width: 24rem;">
                     <div style="flex-grow: 1;">
-                        <x-input 
-                            name="search" 
-                            placeholder="Rechercher un plugin..." 
-                            value="{{ $search }}" 
+                        <x-input
+                            name="search"
+                            placeholder="Rechercher un plugin..."
+                            value="{{ $search }}"
                             class="u-w-full"
                         />
                     </div>
@@ -69,7 +63,7 @@
                                     <div class="p-row" style="align-items: center; gap: 0.375rem; color: var(--gray-500); font-size: 0.75rem;">
                                         <span class="p-text--bold">{{ number_format($plugin['total_downloads']) }} Téléchargement</span>
                                     </div>
-                                    
+
                                     <div>
                                         @if($plugin['status'] === 'installed')
                                             <span class="p-badge p-badge--success" style="font-size: 0.7rem;">
@@ -88,7 +82,7 @@
                                                 Mettre à jour
                                             </x-button>
                                         @endif
-                                        
+
                                         <x-button variant="danger" size="sm" @click.stop="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'desinstallation')" title="Désinstaller">
                                             Désinstaller
                                         </x-button>
@@ -133,14 +127,14 @@
                     <span x-text="actionType === 'installation' ? 'Installation de ' : (actionType === 'mise_a_jour' ? 'Mise à jour de ' : 'Désinstallation de ')"></span>
                     <span class="p-text--bold" x-text="pluginNom"></span>
                 </h3>
-                
+
                 {{-- Barre de progression --}}
                 <div class="c-progress-bar">
                     <div class="c-progress-bar__fill" :style="'width: ' + progress + '%'"></div>
                 </div>
-                
+
                 <p class="c-progress-status" x-text="statusMessage"></p>
-                
+
                 {{-- Terminal de logs --}}
                 <div class="c-progress-steps" id="c-progress-console">
                     <template x-for="step in steps">
@@ -152,7 +146,7 @@
                         </div>
                     </template>
                 </div>
-                
+
                 {{-- Actions --}}
                 <div class="c-progress-action-btn">
                     <x-button variant="default" size="sm" @click="fermerEtRecharger" x-show="completed || errorOccurred">
@@ -185,7 +179,7 @@
                         this.steps = [];
                         this.errorOccurred = false;
                         this.completed = false;
-                        
+
                         // Déclencher l'affichage du modal
                         this.showModal = true;
                         window.dispatchEvent(new CustomEvent('open-modal', { detail: 'progress-modal' }));
@@ -210,7 +204,7 @@
                         this.eventSource.onmessage = (event) => {
                             try {
                                 const data = JSON.parse(event.data);
-                                
+
                                 if (data.status === 'progress') {
                                     this.progress = data.progress;
                                     this.statusMessage = data.message;
@@ -258,7 +252,7 @@
                         }
                         this.showModal = false;
                         window.dispatchEvent(new CustomEvent('close-modal', { detail: 'progress-modal' }));
-                        
+
                         // Si l'action a réussi, on recharge la page pour voir le nouveau statut
                         if (this.completed) {
                             window.location.reload();
