@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use ZipArchive;
 
-class PluginMarketplaceService
+class MarketplaceService
 {
     private string $registryUrl;
 

@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Plugin;
-use App\Services\PluginMarketplaceService;
+use App\Services\MarketplaceService;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MarketplaceController extends Controller
 {
-    public function __construct(private PluginMarketplaceService $service) {}
+    public function __construct(private MarketplaceService $service) {}
 
     /**
      * Liste et recherche les plugins du Marketplace.
