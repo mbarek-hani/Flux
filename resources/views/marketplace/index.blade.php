@@ -54,8 +54,6 @@
                 <div class="p-grid p-grid--1 p-grid--2 p-grid--3 p-grid--gap-md u-mt-4" style="margin-top: 1.5rem;">
                     @foreach($plugins as $plugin)
                         <x-card style="cursor: pointer;" @click="window.location.href = '{{ route('marketplace.show', $plugin['id']) }}'">
-                            <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--color-primary) 0%, var(--info-accent) 100%);"></div>
-                            
                             <div class="u-flex-1" style="padding-top: 0.5rem;">
                                 <div class="p-row p-mb-1" style="align-items: center; justify-content: space-between; gap: 0.5rem;">
                                     <div class="p-row" style="align-items: center; gap: 0.5rem;">
