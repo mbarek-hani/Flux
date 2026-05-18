@@ -261,6 +261,7 @@ class MarketplaceService
                 'description' => $manifestContent['description'] ?? '',
                 'auteur' => $manifestContent['auteur'] ?? $manifestContent['author'] ?? 'Inconnu',
                 'installe' => true,
+                'actif' => true,
                 'metadonnees' => $manifestContent,
                 'installe_le' => now(),
             ],
