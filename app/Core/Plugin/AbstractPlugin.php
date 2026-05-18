@@ -3,10 +3,9 @@
 namespace App\Core\Plugin;
 
 use App\Models\Plugin;
+use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Database\Migrations\Migrator;
-
 
 abstract class AbstractPlugin implements PluginInterface
 {
@@ -23,7 +22,9 @@ abstract class AbstractPlugin implements PluginInterface
     }
 
     abstract public function getIdentifiant(): string;
+
     abstract public function getNom(): string;
+
     abstract public function getVersion(): string;
 
     protected function chargerManifest(): void
@@ -79,48 +80,48 @@ abstract class AbstractPlugin implements PluginInterface
 
     public function installer(): void
     {
-        $path = $this->cheminRacine . '/database/migrations';
-    
+        $path = $this->cheminRacine.'/database/migrations';
+
         if (! is_dir($path)) {
             return;
         }
-    
+
         /** @var Migrator $migrator */
         $migrator = app('migrator');
-    
+
         $migrator->run([$path]);
-    
+
         Log::info("Plugin [{$this->getIdentifiant()}] installé.");
     }
 
     public function desinstaller(): void
     {
-        $path = $this->cheminRacine . '/database/migrations';
-    
+        $path = $this->cheminRacine.'/database/migrations';
+
         if (! is_dir($path)) {
             return;
         }
-    
+
         /** @var Migrator $migrator */
         $migrator = app('migrator');
-    
+
         $files = $migrator->getMigrationFiles($path);
-    
+
         $repository = $migrator->getRepository();
-    
+
         $ran = collect($repository->getRan());
-    
+
         // Keep only migrations that were actually executed
         $pluginMigrations = collect($files)
             ->filter(function ($file, $migration) use ($ran) {
                 return $ran->contains($migration);
             })
             ->all();
-    
+
         if (empty($pluginMigrations)) {
             return;
         }
-    
+
         // Rollback only plugin migrations
         $migrator->rollback(
             [$path],
@@ -129,9 +130,9 @@ abstract class AbstractPlugin implements PluginInterface
                 'step' => count($pluginMigrations),
             ]
         );
-    
+
         Log::info("Plugin [{$this->getIdentifiant()}] désinstallé.");
-    }   
+    }
     // ─── Implémentations par défaut (ne rien faire) ─────────────
 
     public function getHooks(): array

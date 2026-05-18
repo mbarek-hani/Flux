@@ -36,6 +36,4 @@ class Plugin extends Model
     {
         return $query->whereNotNull('installe_le');
     }
-
 }
-

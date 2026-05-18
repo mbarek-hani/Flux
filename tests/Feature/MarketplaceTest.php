@@ -39,14 +39,14 @@ class MarketplaceTest extends TestCase
                         'description' => 'AI Analytics Plugin',
                         'total_downloads' => 125,
                         'repo_url' => 'https://github.com/flux/ai-analytics',
-                    ]
+                    ],
                 ],
                 'meta' => [
                     'total' => 1,
                     'page' => 1,
                     'page_size' => 10,
                     'total_pages' => 1,
-                ]
+                ],
             ], 200),
         ]);
 
@@ -96,7 +96,7 @@ class MarketplaceTest extends TestCase
                     'total_downloads' => 125,
                     'repo_url' => 'https://github.com/flux/ai-analytics',
                     'licence' => 'MIT',
-                ]
+                ],
             ], 200),
         ]);
 

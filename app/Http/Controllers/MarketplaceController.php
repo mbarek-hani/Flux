@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Plugin;
 use App\Core\Plugin\PluginManager;
+use App\Models\Plugin;
 use App\Services\MarketplaceService;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -19,10 +19,10 @@ class MarketplaceController extends Controller
     {
         $search = $request->string('search')->toString();
         $page = $request->integer('page', 1);
-    
+
         try {
             $registryData = $this->service->getPlugins($search, $page);
-    
+
             $remotePlugins = $registryData['data'] ?? [];
             $meta = $registryData['meta'] ?? $this->service->defaultMeta();
         } catch (\Throwable $e) {
@@ -30,6 +30,7 @@ class MarketplaceController extends Controller
                 'erreur',
                 $e->getMessage(),
             );
+
             return view('marketplace.index', [
                 'plugins' => [],
                 'search' => $search,
@@ -37,19 +38,19 @@ class MarketplaceController extends Controller
                 'meta' => $this->service->defaultMeta(),
             ]);
         }
-    
+
         $localPlugins = Plugin::query()
             ->whereIn('identifiant', collect($remotePlugins)->pluck('id'))
             ->get()
             ->keyBy('identifiant');
-    
+
         $plugins = collect($remotePlugins)
             ->map(fn ($remote) => $this->service->enrichPlugin(
                 $remote,
                 $localPlugins->get($remote['id'])
             ))
             ->values();
-    
+
         return view('marketplace.index', [
             'plugins' => $plugins,
             'search' => $search,
@@ -57,7 +58,7 @@ class MarketplaceController extends Controller
             'meta' => $meta,
         ]);
     }
-    
+
     /**
      * Affiche les détails d'un plugin du Marketplace.
      */
@@ -65,35 +66,35 @@ class MarketplaceController extends Controller
     {
         try {
             $remote = $this->service->getPluginDetails($id);
-    
+
             $local = Plugin::where('identifiant', $remote['id'])->first();
-    
+
             $status = 'not_installed';
             $installedVersion = null;
             $updateAvailable = false;
             $actif = false;
-    
+
             if ($local && $local->installe_le !== null) {
                 $status = 'installed';
                 $installedVersion = $local->version;
                 $actif = $local->actif;
-    
+
                 $remoteVer = ltrim($remote['current_version'], 'vV');
                 $localVer = ltrim($local->version, 'vV');
                 if ($localVer !== $remoteVer) {
                     $updateAvailable = true;
                 }
             }
-    
+
             $currentVer = $remote['current_version'];
-            if (!str_starts_with(strtolower($currentVer), 'v')) {
-                $currentVer = 'v' . $currentVer;
+            if (! str_starts_with(strtolower($currentVer), 'v')) {
+                $currentVer = 'v'.$currentVer;
             }
             $installedVer = $installedVersion;
-            if ($installedVer && !str_starts_with(strtolower($installedVer), 'v')) {
-                $installedVer = 'v' . $installedVer;
+            if ($installedVer && ! str_starts_with(strtolower($installedVer), 'v')) {
+                $installedVer = 'v'.$installedVer;
             }
-    
+
             $plugin = [
                 'id' => $remote['id'],
                 'nom' => $remote['name'],
@@ -108,9 +109,9 @@ class MarketplaceController extends Controller
                 'update_available' => $updateAvailable,
                 'actif' => $actif,
             ];
-    
-            return view('marketplace.show', compact('plugin'));           
-        }catch(\Exception $e) {
+
+            return view('marketplace.show', compact('plugin'));
+        } catch (\Exception $e) {
             return redirect()->route('marketplace.index')->with('erreur', $e->getMessage());
         }
     }
@@ -133,7 +134,7 @@ class MarketplaceController extends Controller
                 $this->service->installerPlugin($this->manager, $id, function ($message, $progress) use ($sendEvent) {
                     $sendEvent($message, $progress, 'progress');
                 });
-                
+
                 // Envoyer l'événement de succès final pour que le client sache que c'est terminé
                 $sendEvent('Installation terminée avec succès !', 100, 'success');
             } catch (\Throwable $e) {

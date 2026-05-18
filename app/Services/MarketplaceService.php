@@ -12,7 +12,8 @@ use ZipArchive;
 
 class MarketplaceService
 {
-    private const string ERROR = "Impossible de se connecter au registre de plugins. Veuillez vérifier votre connexion ou réessayer plus tard.";
+    private const string ERROR = 'Impossible de se connecter au registre de plugins. Veuillez vérifier votre connexion ou réessayer plus tard.';
+
     private string $registryUrl;
 
     public function __construct()
@@ -41,13 +42,13 @@ class MarketplaceService
             if ($response->successful()) {
                 return $response->json();
             }
-            throw new \Exception("Code HTTP " . $response->status() . " retourné par le registre");
+            throw new Exception('Code HTTP '.$response->status().' retourné par le registre');
         } catch (\Throwable $e) {
             Log::error(
                 'Erreur de communication avec le registre : '.
                     $e->getMessage(),
             );
-            throw new \Exception(static::ERROR);
+            throw new Exception(static::ERROR);
         }
     }
 
@@ -63,10 +64,10 @@ class MarketplaceService
             if ($response->successful()) {
                 return $response->json('data');
             }
-            throw new \Exception("Code HTTP " . $response->status() . " retourné par le registre");
+            throw new Exception('Code HTTP '.$response->status().' retourné par le registre');
         } catch (\Throwable $e) {
             Log::error('Erreur détails plugin : '.$e->getMessage());
-            throw new \Exception(static::ERROR);
+            throw new Exception(static::ERROR);
         }
     }
 
@@ -331,19 +332,19 @@ class MarketplaceService
 
         return true;
     }
-    
+
     public function enrichPlugin(array $remote, ?Plugin $local): array
     {
         $installed = $local !== null && $local->installe_le !== null;
-    
+
         $installedVersion = $installed
             ? $this->normalizeVersion($local->version)
             : null;
-    
+
         $currentVersion = $this->normalizeVersion(
             $remote['current_version']
         );
-    
+
         return [
             'id' => $remote['id'],
             'nom' => $remote['name'],
@@ -352,39 +353,39 @@ class MarketplaceService
             'current_version' => $currentVersion,
             'total_downloads' => $remote['total_downloads'] ?? 0,
             'repo_url' => $remote['repo_url'] ?? null,
-    
+
             'status' => $installed
                 ? 'installed'
                 : 'not_installed',
-    
+
             'installed_version' => $installedVersion,
-    
+
             'update_available' => $installed &&
                 $this->versionWithoutPrefix($installedVersion) !==
                 $this->versionWithoutPrefix($currentVersion),
-    
+
             'actif' => $local?->actif ?? false,
         ];
     }
-    
+
     public function normalizeVersion(?string $version): ?string
     {
-        if (!$version) {
+        if (! $version) {
             return null;
         }
-    
+
         return str_starts_with(strtolower($version), 'v')
             ? $version
-            : 'v' . $version;
+            : 'v'.$version;
     }
-    
+
     public function versionWithoutPrefix(?string $version): ?string
     {
         return $version
             ? ltrim($version, 'vV')
             : null;
     }
-    
+
     public function defaultMeta(): array
     {
         return [
