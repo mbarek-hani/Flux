@@ -7,19 +7,17 @@
         <div class="p-container p-container--lg">
             
             {{-- En-tête de la page --}}
-            <div class="p-page__header u-mb-3" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <x-button href="{{ route('marketplace.index') }}" variant="default" size="sm" style="border-radius: 0.375rem;">
-                        <x-custom-icon name="chevron-left" class="c-icon--xs" />
-                        <span>Retour</span>
-                    </x-button>
-                    <div>
-                        <h2 class="p-page__title" style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--gray-900);">
-                            {{ $plugin['nom'] }}
-                        </h2>
-                        <p class="p-text--xs u-text-gray-600">Consultez les détails et gérez l'état de ce plugin de la boutique.</p>
-                    </div>
+            <div class="p-page__header u-mb-3 p-row p-row--between">
+                <div>
+                    <h2 class="p-page__title" style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--gray-900);">
+                        {{ $plugin['nom'] }}
+                    </h2>
+                    <p class="p-text--xs u-text-gray-600">Consultez les détails et gérez l'état de ce plugin de la boutique.</p>
                 </div>
+                <x-button href="{{ route('marketplace.index') }}" variant="default" size="sm" style="border-radius: 0.375rem;">
+                    <x-custom-icon name="chevron-left" class="c-icon--xs" />
+                    <span>Retour</span>
+                </x-button>
             </div>
 
             {{-- Contenu du Plugin --}}
