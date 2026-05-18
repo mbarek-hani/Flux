@@ -121,8 +121,7 @@
                             {{-- Dépôt code source --}}
                             @if($plugin['repo_url'])
                                 <div style="margin-top: 0.5rem; border-top: 1px solid var(--gray-100); padding-top: 1rem;">
-                                    <x-button href="{{ $plugin['repo_url'] }}" target="_blank" variant="default" class="u-w-full" style="justify-content: center; border-radius: 0.375rem; font-weight: 500;">
-                                        <x-custom-icon name="code" class="c-icon--xs" />
+                                    <x-button href="{{ $plugin['repo_url'] }}" target="_blank" variant="default" class="u-w-full u-flex u-justify-center">
                                         <span>Consulter le dépôt</span>
                                     </x-button>
                                 </div>
@@ -133,20 +132,17 @@
                                 @if($plugin['status'] === 'installed')
                                     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                                         @if($plugin['update_available'])
-                                            <x-button variant="primary" class="u-w-full" style="justify-content: center; border-radius: 0.375rem; font-weight: 500;" @click="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'mise_a_jour')">
-                                                <x-custom-icon name="arrow-path" class="c-icon--xs animate-spin" style="animation-duration: 3s;" />
+                                            <x-button variant="primary" class="u-w-full u-flex u-justify-center" @click="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'mise_a_jour')">
                                                 <span>Mettre à jour</span>
                                             </x-button>
                                         @endif
                                         
-                                        <x-button variant="danger" class="u-w-full" style="justify-content: center; border-radius: 0.375rem; font-weight: 500;" @click="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'desinstallation')">
-                                            <x-custom-icon name="trash" class="c-icon--xs" />
+                                        <x-button variant="danger" class="u-w-full u-flex u-justify-center" @click="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'desinstallation')">
                                             <span>Désinstaller</span>
                                         </x-button>
                                     </div>
                                 @else
-                                    <x-button variant="primary" class="u-w-full" style="justify-content: center; border-radius: 0.375rem; font-weight: 600; background: linear-gradient(135deg, var(--color-primary) 0%, #059669 100%); border: none; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);" @click="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'installation')">
-                                        <x-custom-icon name="shopping-cart" class="c-icon--xs" />
+                                    <x-button variant="primary" class="u-w-full u-flex u-justify-center" @click="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'installation')">
                                         <span>Installer le plugin</span>
                                     </x-button>
                                 @endif
