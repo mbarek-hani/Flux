@@ -2,13 +2,13 @@
    Common page-level utility classes
    ═══════════════════════════════════════════ */
 
-/* Page wrapper — REDUCED padding */
+/* Page wrapper */
 .p-page {
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
 }
 
-/* Container widths — REDUCED padding, removed max-width restriction */
+/* Container widths */
 .p-container {
     margin-left: 0;
     margin-right: 0;
@@ -25,12 +25,12 @@
     .p-container { padding-left: 0.75rem; padding-right: 0.75rem; }
 }
 
-/* Container size modifiers — kept for optional use but default is full-width */
+/* Container size modifiers */
 .p-container--sm { max-width: 36rem; margin-left: auto; margin-right: auto; }
 .p-container--md { max-width: 48rem; margin-left: auto; margin-right: auto; }
 .p-container--lg { max-width: 72rem; margin-left: auto; margin-right: auto; }
 
-/* Page title — REDUCED margin */
+/* Page title */
 .p-page__title {
     font-size: 1.125rem;
     font-weight: 600;
@@ -46,7 +46,7 @@
     margin-bottom: 0.5rem;
 }
 
-/* Vertical stack with spacing — REDUCED gap */
+/* Vertical stack with spacing */
 .p-stack {
     display: flex;
     flex-direction: column;
@@ -59,7 +59,7 @@
     gap: 0.5rem;
 }
 
-/* Empty state — REDUCED padding */
+/* Empty state */
 .p-empty {
     text-align: center;
     padding-top: 1.25rem;
@@ -87,7 +87,7 @@
     color: var(--gray-500);
 }
 
-/* Section inside card — REDUCED margin/padding */
+/* Section inside card */
 .p-section__header {
     margin-bottom: 0.625rem;
     padding-bottom: 0.5rem;
@@ -138,7 +138,7 @@
     color: var(--gray-500);
 }
 
-/* Card footer (actions) — REDUCED margin/padding */
+/* Card footer (actions) */
 .p-card-footer {
     margin-top: 0.625rem;
     padding-top: 0.5rem;
@@ -182,7 +182,7 @@
     border-color: var(--error-border);
 }
 
-/* Grid layouts — REDUCED gap */
+/* Grid layouts */
 .p-grid {
     display: grid;
     gap: 0.5rem;
