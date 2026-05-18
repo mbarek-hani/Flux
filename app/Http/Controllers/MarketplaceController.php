@@ -39,14 +39,14 @@ class MarketplaceController extends Controller
         }
     
         $localPlugins = Plugin::query()
-            ->whereIn('identifiant', collect($remotePlugins)->pluck('name'))
+            ->whereIn('identifiant', collect($remotePlugins)->pluck('id'))
             ->get()
             ->keyBy('identifiant');
     
         $plugins = collect($remotePlugins)
             ->map(fn ($remote) => $this->service->enrichPlugin(
                 $remote,
-                $localPlugins->get($remote['name'])
+                $localPlugins->get($remote['id'])
             ))
             ->values();
     
@@ -66,7 +66,7 @@ class MarketplaceController extends Controller
         try {
             $remote = $this->service->getPluginDetails($id);
     
-            $local = Plugin::where('identifiant', $remote['name'])->first();
+            $local = Plugin::where('identifiant', $remote['id'])->first();
     
             $status = 'not_installed';
             $installedVersion = null;

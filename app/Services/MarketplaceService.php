@@ -290,8 +290,8 @@ class MarketplaceService
     ): bool {
         $onProgress('Recherche du plugin dans le système...', 15);
         $remoteDetails = $this->getPluginDetails($pluginId);
-        if ($remoteDetails && isset($remoteDetails['name'])) {
-            $plugin = Plugin::where('identifiant', $remoteDetails['name'])->first();
+        if ($remoteDetails && isset($remoteDetails['id'])) {
+            $plugin = Plugin::where('identifiant', $remoteDetails['id'])->first();
         }
         if (! $plugin) {
             throw new Exception(
