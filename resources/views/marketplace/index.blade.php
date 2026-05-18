@@ -3,7 +3,7 @@
         Marketplace de Plugins
     </x-slot>
 
-    <div class="p-page" x-data="marketplaceInstaller()">
+    <div class="p-page" x-data="marketplaceInstaller()" x-on:modal-closed.window="if ($event.detail === 'progress-modal') fermerEtRecharger()">
         <div class="p-container p-container--lg">
 
             {{-- En-tête de la page --}}
@@ -121,7 +121,7 @@
 
         </div>
 
-        <x-modal name="progress-modal" focusable>
+        <x-modal name="progress-modal" focusable closable="completed || errorOccurred">
             <div class="c-progress-container">
                 <h3 class="c-progress-title">
                     <span x-text="actionType === 'installation' ? 'Installation de ' : (actionType === 'mise_a_jour' ? 'Mise à jour de ' : 'Désinstallation de ')"></span>
@@ -212,7 +212,11 @@
                                 } else if (data.status === 'success') {
                                     this.progress = 100;
                                     this.statusMessage = data.message || 'Opération terminée avec succès !';
-                                    this.steps.push({ text: this.statusMessage, type: 'success' });
+                                    if (this.steps.length > 0) {
+                                        this.steps[this.steps.length - 1].type = 'success';
+                                    } else {
+                                        this.steps.push({ text: this.statusMessage, type: 'success' });
+                                    }
                                     this.completed = true;
                                     this.eventSource.close();
                                 } else if (data.status === 'error') {

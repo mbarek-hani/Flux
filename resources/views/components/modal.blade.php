@@ -1,7 +1,8 @@
 @props([
     'name',
     'show' => false,
-    'maxWidth' => '2xl'
+    'maxWidth' => '2xl',
+    'closable' => 'true'
 ])
 
 @php
@@ -41,8 +42,8 @@ $maxWidth = [
     })"
     x-on:open-modal.window="$event.detail == '{{ $name }}' ? show = true : null"
     x-on:close-modal.window="$event.detail == '{{ $name }}' ? show = false : null"
-    x-on:close.stop="show = false"
-    x-on:keydown.escape.window="show = false"
+    x-on:close.stop="if ({{ $closable }}) { show = false; $dispatch('modal-closed', '{{ $name }}'); }"
+    x-on:keydown.escape.window="if ({{ $closable }}) { show = false; $dispatch('modal-closed', '{{ $name }}'); }"
     x-on:keydown.tab.prevent="$event.shiftKey || nextFocusable().focus()"
     x-on:keydown.shift.tab.prevent="prevFocusable().focus()"
     x-show="show"
@@ -52,7 +53,7 @@ $maxWidth = [
     <div
         x-show="show"
         class="c-modal__overlay"
-        x-on:click="show = false"
+        x-on:click="if ({{ $closable }}) { show = false; $dispatch('modal-closed', '{{ $name }}'); }"
         x-transition:enter="c-transition-modal-enter"
         x-transition:enter-start="c-transition-modal-enter-start"
         x-transition:enter-end="c-transition-modal-enter-end"

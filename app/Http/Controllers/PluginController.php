@@ -27,7 +27,7 @@ class PluginController extends Controller
                 'description' => $plugin->getManifest()['description'] ?? '',
                 'auteur' => $plugin->getManifest()['auteur'] ?? 'Inconnu',
                 'actif' => $enBdd?->actif ?? false,
-                'installe' => $enBdd?->installe ?? false,
+                'installe' => $enBdd !== null && $enBdd->installe_le !== null,
                 'onglets' => $plugin->getOnglets(),
                 'hooks' => $plugin->getHooks(),
             ];
@@ -57,7 +57,7 @@ class PluginController extends Controller
             'licence' => $plugin->getManifest()['licence'] ?? 'Non spécifiée',
             'url' => $plugin->getManifest()['url'] ?? null,
             'actif' => $enBdd?->actif ?? false,
-            'installe' => $enBdd?->installe ?? false,
+            'installe' => $enBdd !== null && $enBdd->installe_le !== null,
             'active_le' => $enBdd?->active_le ?? null,
             'onglets' => $plugin->getOnglets(),
             'hooks' => $plugin->getHooks(),

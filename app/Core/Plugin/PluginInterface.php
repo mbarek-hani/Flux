@@ -20,6 +20,8 @@ interface PluginInterface
 
     public function desactiver(): void;
 
+    public function installer(): void;
+
     public function desinstaller(): void;
 
     public function enregistrer(): void;

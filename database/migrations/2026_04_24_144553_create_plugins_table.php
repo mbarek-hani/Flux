@@ -19,7 +19,6 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('auteur')->nullable();
             $table->boolean('actif')->default(false);
-            $table->boolean('installe')->default(false);
             $table->json('configuration')->nullable(); // Config spécifique au plugin
             $table->json('metadonnees')->nullable(); // Données du manifest
             $table->timestamp('installe_le')->nullable();

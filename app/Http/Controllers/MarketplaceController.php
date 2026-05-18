@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Plugin;
+use App\Core\Plugin\PluginManager;
 use App\Services\MarketplaceService;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MarketplaceController extends Controller
 {
-    public function __construct(private MarketplaceService $service) {}
+    public function __construct(private MarketplaceService $service, private PluginManager $manager) {}
 
     /**
      * Liste et recherche les plugins du Marketplace.
@@ -72,7 +73,7 @@ class MarketplaceController extends Controller
             $updateAvailable = false;
             $actif = false;
     
-            if ($local && $local->installe) {
+            if ($local && $local->installe_le !== null) {
                 $status = 'installed';
                 $installedVersion = $local->version;
                 $actif = $local->actif;
@@ -129,9 +130,12 @@ class MarketplaceController extends Controller
             };
 
             try {
-                $this->service->installerPlugin($id, function ($message, $progress) use ($sendEvent) {
+                $this->service->installerPlugin($this->manager, $id, function ($message, $progress) use ($sendEvent) {
                     $sendEvent($message, $progress, 'progress');
                 });
+                
+                // Envoyer l'événement de succès final pour que le client sache que c'est terminé
+                $sendEvent('Installation terminée avec succès !', 100, 'success');
             } catch (\Throwable $e) {
                 $sendEvent('Erreur : '.$e->getMessage(), 100, 'error');
             }
@@ -167,9 +171,12 @@ class MarketplaceController extends Controller
             };
 
             try {
-                $this->service->desinstallerPlugin($id, function ($message, $progress) use ($sendEvent) {
+                $this->service->desinstallerPlugin($this->manager, $id, function ($message, $progress) use ($sendEvent) {
                     $sendEvent($message, $progress, 'progress');
                 });
+
+                // Envoyer l'événement de succès final pour que le client sache que c'est terminé
+                $sendEvent('Désinstallation terminée avec succès !', 100, 'success');
             } catch (\Throwable $e) {
                 $sendEvent('Erreur : '.$e->getMessage(), 100, 'error');
             }

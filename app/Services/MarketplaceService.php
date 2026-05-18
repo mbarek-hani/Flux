@@ -74,6 +74,7 @@ class MarketplaceService
      * Installer ou mettre à jour un plugin.
      */
     public function installerPlugin(
+        PluginManager $manager,
         string $pluginId,
         callable $onProgress,
     ): bool {
@@ -164,7 +165,7 @@ class MarketplaceService
         // Étape 7 : Extraction zip
         $onProgress(
             'Décompression et installation des fichiers du plugin...',
-            95,
+            90,
         );
 
         // Dossier temporaire pour l'extraction
@@ -251,21 +252,28 @@ class MarketplaceService
         File::deleteDirectory($tempDir);
 
         // Étape 8 : Enregistrer en BDD
-        $onProgress('Enregistrement en base de données...', 99);
+        $onProgress('Enregistrement en base de données...', 91);
 
-        Plugin::updateOrCreate(
-            ['identifiant' => $folderName],
-            [
-                'nom' => $manifestContent['nom'] ?? $pluginName,
-                'version' => $manifestContent['version'] ?? $pluginVersion,
-                'description' => $manifestContent['description'] ?? '',
-                'auteur' => $manifestContent['auteur'] ?? $manifestContent['author'] ?? 'Inconnu',
-                'installe' => true,
-                'actif' => true,
-                'metadonnees' => $manifestContent,
-                'installe_le' => now(),
-            ],
-        );
+        $pluginIdentifiant = $manifestContent['identifiant'] ?? $folderName;
+
+        // Supprimer l'ancien enregistrement s'il existe (pour le cas des mises à jour)
+        Plugin::where('identifiant', $pluginIdentifiant)->delete();
+
+        $plugin = Plugin::create([
+            'identifiant' => $pluginIdentifiant,
+            'nom' => $manifestContent['nom'] ?? $pluginName,
+            'version' => $manifestContent['version'] ?? $pluginVersion,
+            'description' => $manifestContent['description'] ?? '',
+            'auteur' => $manifestContent['auteur'] ?? $manifestContent['author'] ?? 'Inconnu',
+            'actif' => true,
+            'metadonnees' => $manifestContent,
+            'installe_le' => now(),
+        ]);
+
+        // Réinitialiser le gestionnaire pour découvrir le nouveau plugin sur le disque
+        $manager->initialiser();
+
+        $manager->installer($plugin->identifiant);
 
         $onProgress('Installation réussie !', 100);
 
@@ -276,16 +284,14 @@ class MarketplaceService
      * Désinstaller un plugin.
      */
     public function desinstallerPlugin(
+        PluginManager $manager,
         string $pluginId,
         callable $onProgress,
     ): bool {
         $onProgress('Recherche du plugin dans le système...', 15);
-        $plugin = Plugin::where('identifiant', $pluginId)->first();
-        if (! $plugin) {
-            $remoteDetails = $this->getPluginDetails($pluginId);
-            if ($remoteDetails && isset($remoteDetails['name'])) {
-                $plugin = Plugin::where('identifiant', $remoteDetails['name'])->first();
-            }
+        $remoteDetails = $this->getPluginDetails($pluginId);
+        if ($remoteDetails && isset($remoteDetails['name'])) {
+            $plugin = Plugin::where('identifiant', $remoteDetails['name'])->first();
         }
         if (! $plugin) {
             throw new Exception(
@@ -293,10 +299,9 @@ class MarketplaceService
             );
         }
 
-        // Étape 1 : Désactivation du plugin dans le manager
-        $onProgress('Désactivation du plugin...', 40);
-        $manager = app(PluginManager::class);
-        $manager->desactiver($pluginId);
+        // Étape 1 : Désinstallation du plugin dans le manager
+        $onProgress('Désinstallation du plugin...', 40);
+        $manager->desinstaller($plugin->identifiant);
 
         // Étape 2 : Suppression des fichiers du plugin
         $onProgress('Suppression des fichiers du plugin...', 75);
@@ -320,12 +325,7 @@ class MarketplaceService
 
         // Étape 3 : Mise à jour de la base de données
         $onProgress('Nettoyage de la base de données...', 95);
-        $plugin->update([
-            'installe' => false,
-            'actif' => false,
-            'installe_le' => null,
-            'active_le' => null,
-        ]);
+        $plugin->delete();
 
         $onProgress('Désinstallation réussie !', 100);
 
@@ -334,7 +334,7 @@ class MarketplaceService
     
     public function enrichPlugin(array $remote, ?Plugin $local): array
     {
-        $installed = $local?->installe ?? false;
+        $installed = $local !== null && $local->installe_le !== null;
     
         $installedVersion = $installed
             ? $this->normalizeVersion($local->version)

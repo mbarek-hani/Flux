@@ -3,9 +3,10 @@
 namespace App\Core\Plugin;
 
 use App\Models\Plugin;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Database\Migrations\Migrator;
+
 
 abstract class AbstractPlugin implements PluginInterface
 {
@@ -20,6 +21,10 @@ abstract class AbstractPlugin implements PluginInterface
         $this->cheminRacine = dirname($refClass->getFileName(), 2);
         $this->chargerManifest();
     }
+
+    abstract public function getIdentifiant(): string;
+    abstract public function getNom(): string;
+    abstract public function getVersion(): string;
 
     protected function chargerManifest(): void
     {
@@ -37,7 +42,6 @@ abstract class AbstractPlugin implements PluginInterface
     {
         $this->enregistrerRoutes();
         $this->enregistrerVues();
-        $this->publierAssets();
     }
 
     protected function enregistrerRoutes(): void
@@ -61,67 +65,73 @@ abstract class AbstractPlugin implements PluginInterface
         }
     }
 
-    /**
-     * Copie les assets statiques (CSS, JS) vers public/plugin-assets/{id}/
-     */
-    protected function publierAssets(): void
-    {
-        $source = $this->cheminRacine.'/resources/assets';
-        $dest = public_path('plugin-assets/'.$this->getIdentifiant());
-
-        if (! is_dir($source)) {
-            return;
-        }
-
-        if (! is_dir($dest)) {
-            mkdir($dest, 0755, true);
-        }
-
-        $fichiers = glob($source.'/*');
-        foreach ($fichiers as $fichier) {
-            $nomFichier = basename($fichier);
-            $destFichier = $dest.'/'.$nomFichier;
-
-            if (
-                ! file_exists($destFichier) ||
-                filemtime($fichier) > filemtime($destFichier)
-            ) {
-                copy($fichier, $destFichier);
-            }
-        }
-    }
-
     public function activer(): void
     {
-        $dossier = $this->cheminRacine.'/database/migrations';
-
-        if (is_dir($dossier)) {
-            Artisan::call('migrate', [
-                '--path' => str_replace(base_path().'/', '', $dossier),
-                '--force' => true,
-            ]);
-        }
-
         $this->publierAssets();
+        Log::info("Plugin [{$this->getIdentifiant()}] activée.");
     }
 
     public function desactiver(): void
     {
-        Log::info("Plugin [{$this->getIdentifiant()}] désactivé.");
+        $this->supprimerAssets();
+        Log::info("Plugin [{$this->getIdentifiant()}] désactivée.");
+    }
+
+    public function installer(): void
+    {
+        $path = $this->cheminRacine . '/database/migrations';
+    
+        if (! is_dir($path)) {
+            return;
+        }
+    
+        /** @var Migrator $migrator */
+        $migrator = app('migrator');
+    
+        $migrator->run([$path]);
+    
+        Log::info("Plugin [{$this->getIdentifiant()}] installé.");
     }
 
     public function desinstaller(): void
     {
-        // Supprimer les assets publiés
-        $dest = public_path('plugin-assets/'.$this->getIdentifiant());
-        if (is_dir($dest)) {
-            array_map('unlink', glob($dest.'/*'));
-            rmdir($dest);
+        $path = $this->cheminRacine . '/database/migrations';
+    
+        if (! is_dir($path)) {
+            return;
         }
-
+    
+        /** @var Migrator $migrator */
+        $migrator = app('migrator');
+    
+        $files = $migrator->getMigrationFiles($path);
+    
+        $repository = $migrator->getRepository();
+    
+        $ran = collect($repository->getRan());
+    
+        // Keep only migrations that were actually executed
+        $pluginMigrations = collect($files)
+            ->filter(function ($file, $migration) use ($ran) {
+                return $ran->contains($migration);
+            })
+            ->all();
+    
+        if (empty($pluginMigrations)) {
+            return;
+        }
+    
+        // Rollback only plugin migrations
+        $migrator->rollback(
+            [$path],
+            [
+                'pretend' => false,
+                'step' => count($pluginMigrations),
+            ]
+        );
+    
         Log::info("Plugin [{$this->getIdentifiant()}] désinstallé.");
-    }
-
+    }   
     // ─── Implémentations par défaut (ne rien faire) ─────────────
 
     public function getHooks(): array
@@ -209,5 +219,44 @@ abstract class AbstractPlugin implements PluginInterface
     {
         return $this->cheminRacine.
             ($relatif ? '/'.ltrim($relatif, '/') : '');
+    }
+
+    /**
+     * Copie les assets statiques (CSS, JS) vers public/plugin-assets/{id}/
+     */
+    protected function publierAssets(): void
+    {
+        $source = $this->cheminRacine.'/resources/assets';
+        $dest = public_path('plugin-assets/'.$this->getIdentifiant());
+
+        if (! is_dir($source)) {
+            return;
+        }
+
+        if (! is_dir($dest)) {
+            mkdir($dest, 0755, true);
+        }
+
+        $fichiers = glob($source.'/*');
+        foreach ($fichiers as $fichier) {
+            $nomFichier = basename($fichier);
+            $destFichier = $dest.'/'.$nomFichier;
+
+            if (
+                ! file_exists($destFichier) ||
+                filemtime($fichier) > filemtime($destFichier)
+            ) {
+                copy($fichier, $destFichier);
+            }
+        }
+    }
+
+    protected function supprimerAssets(): void
+    {
+        $dest = public_path('plugin-assets/'.$this->getIdentifiant());
+        if (is_dir($dest)) {
+            array_map('unlink', glob($dest.'/*'));
+            rmdir($dest);
+        }
     }
 }

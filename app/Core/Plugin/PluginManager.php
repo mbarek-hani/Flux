@@ -20,11 +20,13 @@ class PluginManager
     /** @var array<string, PluginInterface[]> */
     private array $hooks = [];
 
-    public function __construct(private PluginDiscovery $discovery) {}
+    public function __construct(private PluginDiscovery $discovery)
+    {
+    }
 
     public function initialiser(): void
     {
-        if (! $this->tableExiste()) {
+        if (!$this->tableExiste()) {
             return;
         }
 
@@ -71,17 +73,15 @@ class PluginManager
             $this->pluginsActifs[$plugin->getIdentifiant()] = $plugin;
         } catch (\Throwable $e) {
             Log::error(
-                "Plugin [{$plugin->getIdentifiant()}] : ".$e->getMessage(),
+                "Plugin [{$plugin->getIdentifiant()}] : " . $e->getMessage(),
             );
         }
     }
 
-    // Activation / Désactivation
-
     public function activer(string $id): bool
     {
         $plugin = $this->pluginsDecouverts[$id] ?? null;
-        if (! $plugin) {
+        if (!$plugin) {
             return false;
         }
 
@@ -94,7 +94,6 @@ class PluginManager
                     'nom' => $plugin->getNom(),
                     'version' => $plugin->getVersion(),
                     'actif' => true,
-                    'installe' => true,
                     'active_le' => now(),
                     'installe_le' => now(),
                     'metadonnees' => $plugin->getManifest(),
@@ -105,7 +104,7 @@ class PluginManager
 
             return true;
         } catch (\Throwable $e) {
-            Log::error("Activation [{$id}] : ".$e->getMessage());
+            Log::error("Activation [{$id}] : " . $e->getMessage());
 
             return false;
         }
@@ -114,7 +113,7 @@ class PluginManager
     public function desactiver(string $id): bool
     {
         $plugin = $this->pluginsActifs[$id] ?? null;
-        if (! $plugin) {
+        if (!$plugin) {
             return false;
         }
 
@@ -125,10 +124,26 @@ class PluginManager
 
             return true;
         } catch (\Throwable $e) {
-            Log::error("Désactivation [{$id}] : ".$e->getMessage());
+            Log::error("Désactivation [{$id}] : " . $e->getMessage());
 
             return false;
         }
+    }
+
+    public function installer(string $id): void
+    {
+        $plugin = $this->pluginsDecouverts[$id] ?? null;
+        $plugin->installer();
+        $this->activer($id);
+    }
+
+    public function desinstaller(string $id): void
+    {
+        $plugin = $this->pluginsActifs[$id] ?? $this->pluginsDecouverts[$id] ?? null;
+        $this->desactiver($id);
+        $plugin->desinstaller();
+
+        PluginModele::where('identifiant', $id)->delete();
     }
 
     // Hooks
@@ -173,8 +188,8 @@ class PluginManager
                 $plugin->apresVisite($visite, $donnees, $request);
             } catch (\Throwable $e) {
                 Log::error(
-                    "Plugin [{$plugin->getIdentifiant()}] apresVisite : ".
-                        $e->getMessage(),
+                    "Plugin [{$plugin->getIdentifiant()}] apresVisite : " .
+                    $e->getMessage(),
                 );
             }
         }
@@ -193,8 +208,8 @@ class PluginManager
                 $plugin->apresEvenement($evenement, $donnees, $request);
             } catch (\Throwable $e) {
                 Log::error(
-                    "Plugin [{$plugin->getIdentifiant()}] apresEvenement : ".
-                        $e->getMessage(),
+                    "Plugin [{$plugin->getIdentifiant()}] apresEvenement : " .
+                    $e->getMessage(),
                 );
             }
         }
@@ -224,7 +239,7 @@ class PluginManager
 
         foreach ($this->pluginsActifs as $plugin) {
             $champs = $plugin->getReglages();
-            if (! empty($champs)) {
+            if (!empty($champs)) {
                 $reglages[$plugin->getIdentifiant()] = [
                     'nom' => $plugin->getNom(),
                     'champs' => $champs,
@@ -283,7 +298,7 @@ class PluginManager
         foreach ($this->pluginsActifs as $plugin) {
             $code = $plugin->getTrackerJavaScript();
             if ($code) {
-                $js .= "\n// Plugin: {$plugin->getIdentifiant()}\n".$code;
+                $js .= "\n// Plugin: {$plugin->getIdentifiant()}\n" . $code;
             }
         }
 

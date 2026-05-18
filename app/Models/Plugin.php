@@ -13,7 +13,6 @@ class Plugin extends Model
         'description',
         'auteur',
         'actif',
-        'installe',
         'configuration',
         'metadonnees',
         'installe_le',
@@ -22,7 +21,6 @@ class Plugin extends Model
 
     protected $casts = [
         'actif' => 'boolean',
-        'installe' => 'boolean',
         'configuration' => 'array',
         'metadonnees' => 'array',
         'installe_le' => 'datetime',
@@ -36,6 +34,8 @@ class Plugin extends Model
 
     public function scopeInstalles($query)
     {
-        return $query->where('installe', true);
+        return $query->whereNotNull('installe_le');
     }
+
 }
+
