@@ -2,38 +2,6 @@
    Marketplace CSS styles
    ═══════════════════════════════════════════ */
 
-/* Tabs Navigation */
-.p-tabs {
-    display: flex;
-    gap: 0.5rem;
-    border-bottom: 1px solid var(--gray-200);
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
-}
-
-.p-tab {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--gray-500);
-    border-radius: 0.375rem;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    background: transparent;
-    border: none;
-}
-
-.p-tab:hover {
-    color: var(--gray-900);
-    background-color: var(--gray-100);
-}
-
-.p-tab--active {
-    color: var(--color-primary);
-    background-color: var(--gray-100);
-    font-weight: 600;
-}
-
 /* Progress bar inside the modal */
 .c-progress-container {
     padding: 1.5rem;
