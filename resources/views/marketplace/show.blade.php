@@ -27,9 +27,7 @@
                 <div style="display: flex; flex-direction: column; gap: 1.5rem;">
                     
                     {{-- Carte d'informations principales --}}
-                    <x-card style="position: relative; overflow: hidden; border: 1px solid var(--gray-200); transition: all 0.3s ease;">
-                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--color-primary) 0%, var(--info-accent) 100%);"></div>
-                        
+                    <x-card>
                         <div style="padding: 1.5rem 0.5rem 0.5rem;">
                             <div class="p-row p-mb-3" style="align-items: center; gap: 0.75rem;">
                                 <div style="background-color: var(--gray-100); padding: 0.75rem; border-radius: 0.5rem;">
