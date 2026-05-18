@@ -16,81 +16,47 @@ class MarketplaceController extends Controller
      */
     public function index(Request $request)
     {
-        $search = $request->query('search', '');
-        $page = (int) $request->query('page', 1);
-        $error = null;
-
+        $search = $request->string('search')->toString();
+        $page = $request->integer('page', 1);
+    
         try {
             $registryData = $this->service->getPlugins($search, $page);
+    
             $remotePlugins = $registryData['data'] ?? [];
-            $meta = $registryData['meta'] ?? [
-                'total' => 0,
-                'page' => 1,
-                'page_size' => 20,
-                'total_pages' => 1,
-            ];
+            $meta = $registryData['meta'] ?? $this->service->defaultMeta();
         } catch (\Throwable $e) {
-            $remotePlugins = [];
-            $meta = [
-                'total' => 0,
-                'page' => 1,
-                'page_size' => 20,
-                'total_pages' => 1,
-            ];
-            $error = "Impossible de se connecter au registre de plugins. Veuillez vérifier votre connexion ou réessayer plus tard.";
+            session()->flash(
+                'erreur',
+                $e->getMessage(),
+            );
+            return view('marketplace.index', [
+                'plugins' => [],
+                'search' => $search,
+                'page' => $page,
+                'meta' => $this->service->defaultMeta(),
+            ]);
         }
-
-        // Enrichir avec l'état local
-        $plugins = [];
-        foreach ($remotePlugins as $remote) {
-            $local = Plugin::where('identifiant', $remote['name'])->first();
-
-            $status = 'not_installed';
-            $installedVersion = null;
-            $updateAvailable = false;
-            $actif = false;
-
-            if ($local && $local->installe) {
-                $status = 'installed';
-                $installedVersion = $local->version;
-                $actif = $local->actif;
-
-                $remoteVer = ltrim($remote['current_version'], 'vV');
-                $localVer = ltrim($local->version, 'vV');
-                if ($localVer !== $remoteVer) {
-                    $updateAvailable = true;
-                }
-            }
-
-            $currentVer = $remote['current_version'];
-            if (!str_starts_with(strtolower($currentVer), 'v')) {
-                $currentVer = 'v' . $currentVer;
-            }
-            $installedVer = $installedVersion;
-            if ($installedVer && !str_starts_with(strtolower($installedVer), 'v')) {
-                $installedVer = 'v' . $installedVer;
-            }
-
-            $enriched = [
-                'id' => $remote['id'],
-                'nom' => $remote['name'],
-                'author' => $remote['author'] ?? 'Inconnu',
-                'description' => $remote['description'] ?? '',
-                'current_version' => $currentVer,
-                'total_downloads' => $remote['total_downloads'] ?? 0,
-                'repo_url' => $remote['repo_url'] ?? null,
-                'status' => $status,
-                'installed_version' => $installedVer,
-                'update_available' => $updateAvailable,
-                'actif' => $actif,
-            ];
-
-            $plugins[] = $enriched;
-        }
-
-        return view('marketplace.index', compact('plugins', 'search', 'page', 'meta', 'error'));
+    
+        $localPlugins = Plugin::query()
+            ->whereIn('identifiant', collect($remotePlugins)->pluck('name'))
+            ->get()
+            ->keyBy('identifiant');
+    
+        $plugins = collect($remotePlugins)
+            ->map(fn ($remote) => $this->service->enrichPlugin(
+                $remote,
+                $localPlugins->get($remote['name'])
+            ))
+            ->values();
+    
+        return view('marketplace.index', [
+            'plugins' => $plugins,
+            'search' => $search,
+            'page' => $page,
+            'meta' => $meta,
+        ]);
     }
-
+    
     /**
      * Affiche les détails d'un plugin du Marketplace.
      */
