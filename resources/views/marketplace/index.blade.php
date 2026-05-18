@@ -59,7 +59,7 @@
                                     <span class="p-badge p-badge--neutral" style="font-size: 0.7rem; font-weight: 600;">{{ $plugin['current_version'] }}</span>
                                 </div>
 
-                                <div class="p-row p-row--between" style="align-items: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed var(--gray-100);">
+                                <div class="p-row p-row--between" style="align-items: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--gray-300);">
                                     <div class="p-row" style="align-items: center; gap: 0.375rem; color: var(--gray-500); font-size: 0.75rem;">
                                         <span class="p-text--bold">{{ number_format($plugin['total_downloads']) }} Téléchargement</span>
                                     </div>
@@ -74,8 +74,8 @@
                                 </div>
                             </div>
 
-                            <div class="p-card-footer u-justify-end p-mt-2" style="border-top: none; padding-top: 0.5rem;" @click.stop>
-                                <div class="p-actions">
+                            <div class="p-card-footer p-mt-2" style="border-top: none; padding-top: 0.5rem;" @click.stop>
+                                <div class="p-actions u-flex u-justify-end">
                                     @if($plugin['status'] === 'installed')
                                         @if($plugin['update_available'])
                                             <x-button variant="primary" size="sm" @click.stop="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'mise_a_jour')" title="Mettre à jour">

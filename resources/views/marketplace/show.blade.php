@@ -12,7 +12,7 @@
                     <h2 class="p-page__title" style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--gray-900);">
                         {{ $plugin['nom'] }}
                     </h2>
-                    <p class="p-text--xs u-text-gray-600">Consultez les détails et gérez l'état de ce plugin de la boutique.</p>
+                    <p class="u-text-gray-600">Consultez les détails et gérez l'état de ce plugin de la boutique.</p>
                 </div>
                 <x-button href="{{ route('marketplace.index') }}" variant="default" size="sm" style="border-radius: 0.375rem;">
                     <x-custom-icon name="chevron-left" class="c-icon--xs" />
@@ -28,30 +28,28 @@
                     
                     {{-- Carte d'informations principales --}}
                     <x-card>
-                        <div style="padding: 1.5rem 0.5rem 0.5rem;">
-                            <div class="p-row p-mb-3" style="align-items: center; gap: 0.75rem;">
-                                <div style="background-color: var(--gray-100); padding: 0.75rem; border-radius: 0.5rem;">
-                                    <x-custom-icon name="puzzle" class="c-icon--md u-text-gray-600" />
-                                </div>
-                                <div>
-                                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--gray-900);">
-                                        {{ $plugin['nom'] }}
-                                    </h3>
-                                    <p style="margin: 0.125rem 0 0; font-size: 0.85rem; color: var(--gray-500);">
-                                        Par <span style="font-weight: 600; color: var(--gray-700);">{{ $plugin['author'] }}</span>
-                                    </p>
-                                </div>
+                        <div class="p-row p-mb-3" style="align-items: center; gap: 0.75rem;">
+                            <div style="background-color: var(--gray-100); padding: 0.75rem; border-radius: 0.5rem;">
+                                <x-custom-icon name="puzzle" class="c-icon--md u-text-gray-600" />
                             </div>
-
-                            @if($plugin['description'])
-                                <div style="margin-top: 1.5rem;">
-                                    <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Description</h4>
-                                    <p class="p-text" style="line-height: 1.6; color: var(--gray-600); font-size: 0.925rem;">
-                                        {{ $plugin['description'] }}
-                                    </p>
-                                </div>
-                            @endif
+                            <div>
+                                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--gray-900);">
+                                    {{ $plugin['nom'] }}
+                                </h3>
+                                <p style="margin: 0.125rem 0 0; font-size: 0.85rem; color: var(--gray-500);">
+                                    Par <span style="font-weight: 600; color: var(--gray-700);">{{ $plugin['author'] }}</span>
+                                </p>
+                            </div>
                         </div>
+
+                        @if($plugin['description'])
+                            <div style="margin-top: 1.5rem;">
+                                <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Description</h4>
+                                <p class="p-text" style="line-height: 1.6; color: var(--gray-600); font-size: 0.925rem;">
+                                    {{ $plugin['description'] }}
+                                </p>
+                            </div>
+                        @endif
                     </x-card>
 
                 </div>
@@ -71,7 +69,7 @@
                             <div class="p-row p-row--between" style="align-items: center; font-size: 0.85rem;">
                                 <span style="color: var(--gray-500);">Statut actuel :</span>
                                 @if($plugin['status'] === 'installed')
-                                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem;">
+                                    <div style="display: flex;  align-items: flex-end; gap: 0.25rem;">
                                         <span class="p-badge p-badge--success" style="font-weight: 600;">
                                             Installé
                                         </span>
