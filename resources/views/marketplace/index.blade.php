@@ -10,7 +10,7 @@
             <div class="p-page__header u-mb-3">
                 <div>
                     <h2 class="p-page__title">Marketplace de Plugins</h2>
-                    <p class="p-text--xs u-text-gray-600">Découvrez et installez de nouvelles fonctionnalités pour enrichir votre tableau de bord Flux.</p>
+                    <p class="u-text-gray-600">Découvrez et installez de nouvelles fonctionnalités pour enrichir votre tableau de bord Flux.</p>
                 </div>
             </div>
 
