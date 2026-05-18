@@ -96,55 +96,56 @@ class MarketplaceController extends Controller
      */
     public function show(string $id)
     {
-        $remote = $this->service->getPluginDetails($id);
-        if (!$remote) {
-            return redirect()->route('marketplace.index')->with('erreur', 'Impossible de récupérer les détails du plugin.');
-        }
-
-        $local = Plugin::where('identifiant', $remote['name'])->first();
-
-        $status = 'not_installed';
-        $installedVersion = null;
-        $updateAvailable = false;
-        $actif = false;
-
-        if ($local && $local->installe) {
-            $status = 'installed';
-            $installedVersion = $local->version;
-            $actif = $local->actif;
-
-            $remoteVer = ltrim($remote['current_version'], 'vV');
-            $localVer = ltrim($local->version, 'vV');
-            if ($localVer !== $remoteVer) {
-                $updateAvailable = true;
+        try {
+            $remote = $this->service->getPluginDetails($id);
+    
+            $local = Plugin::where('identifiant', $remote['name'])->first();
+    
+            $status = 'not_installed';
+            $installedVersion = null;
+            $updateAvailable = false;
+            $actif = false;
+    
+            if ($local && $local->installe) {
+                $status = 'installed';
+                $installedVersion = $local->version;
+                $actif = $local->actif;
+    
+                $remoteVer = ltrim($remote['current_version'], 'vV');
+                $localVer = ltrim($local->version, 'vV');
+                if ($localVer !== $remoteVer) {
+                    $updateAvailable = true;
+                }
             }
+    
+            $currentVer = $remote['current_version'];
+            if (!str_starts_with(strtolower($currentVer), 'v')) {
+                $currentVer = 'v' . $currentVer;
+            }
+            $installedVer = $installedVersion;
+            if ($installedVer && !str_starts_with(strtolower($installedVer), 'v')) {
+                $installedVer = 'v' . $installedVer;
+            }
+    
+            $plugin = [
+                'id' => $remote['id'],
+                'nom' => $remote['name'],
+                'author' => $remote['author'] ?? 'Inconnu',
+                'description' => $remote['description'] ?? '',
+                'current_version' => $currentVer,
+                'total_downloads' => $remote['total_downloads'] ?? 0,
+                'repo_url' => $remote['repo_url'] ?? null,
+                'licence' => $remote['licence'] ?? 'MIT',
+                'status' => $status,
+                'installed_version' => $installedVer,
+                'update_available' => $updateAvailable,
+                'actif' => $actif,
+            ];
+    
+            return view('marketplace.show', compact('plugin'));           
+        }catch(\Exception $e) {
+            return redirect()->route('marketplace.index')->with('erreur', $e->getMessage());
         }
-
-        $currentVer = $remote['current_version'];
-        if (!str_starts_with(strtolower($currentVer), 'v')) {
-            $currentVer = 'v' . $currentVer;
-        }
-        $installedVer = $installedVersion;
-        if ($installedVer && !str_starts_with(strtolower($installedVer), 'v')) {
-            $installedVer = 'v' . $installedVer;
-        }
-
-        $plugin = [
-            'id' => $remote['id'],
-            'nom' => $remote['name'],
-            'author' => $remote['author'] ?? 'Inconnu',
-            'description' => $remote['description'] ?? '',
-            'current_version' => $currentVer,
-            'total_downloads' => $remote['total_downloads'] ?? 0,
-            'repo_url' => $remote['repo_url'] ?? null,
-            'licence' => $remote['licence'] ?? 'MIT',
-            'status' => $status,
-            'installed_version' => $installedVer,
-            'update_available' => $updateAvailable,
-            'actif' => $actif,
-        ];
-
-        return view('marketplace.show', compact('plugin'));
     }
 
     /**

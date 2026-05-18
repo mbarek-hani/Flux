@@ -53,7 +53,7 @@ class MarketplaceService
     /**
      * Obtenir les détails d'un plugin.
      */
-    public function getPluginDetails(string $id): ?array
+    public function getPluginDetails(string $id): array
     {
         try {
             $response = Http::timeout(5)->get(
@@ -62,11 +62,11 @@ class MarketplaceService
             if ($response->successful()) {
                 return $response->json('data');
             }
+            throw new \Exception("Code HTTP " . $response->status() . " retourné par le registre");
         } catch (\Throwable $e) {
             Log::error('Erreur détails plugin : '.$e->getMessage());
+            throw $e;
         }
-
-        return null;
     }
 
     /**
