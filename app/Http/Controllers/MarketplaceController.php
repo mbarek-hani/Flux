@@ -153,8 +153,31 @@ class MarketplaceController extends Controller
      */
     public function streamUpdate(string $id): StreamedResponse
     {
-        // La mise à jour effectue la même séquence que l'installation
-        return $this->streamInstall($id);
+        return response()->stream(function () use ($id) {
+            $sendEvent = function ($message, $progress, $status = 'progress') {
+                echo 'data: '.json_encode(['message' => $message, 'progress' => $progress, 'status' => $status])."\n\n";
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            };
+
+            try {
+                $this->service->installerPlugin($this->manager, $id, function ($message, $progress) use ($sendEvent) {
+                    $sendEvent($message, $progress, 'progress');
+                });
+
+                // Envoyer l'événement de succès final pour que le client sache que c'est terminé
+                $sendEvent('Mise à jour terminée avec succès !', 100, 'success');
+            } catch (\Throwable $e) {
+                $sendEvent('Erreur : '.$e->getMessage(), 100, 'error');
+            }
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
+            'X-Accel-Buffering' => 'no',
+        ]);
     }
 
     /**

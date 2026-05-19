@@ -126,7 +126,7 @@
                                 @if($plugin['status'] === 'installed')
                                     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                                         @if($plugin['update_available'])
-                                            <x-button variant="primary" class="u-w-full u-flex u-justify-center" @click="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'mise_a_jour')">
+                                            <x-button variant="primary" class="u-w-full u-flex u-justify-center" @click="lancerAction('{{ $plugin['id'] }}', '{{ $plugin['nom'] }}', 'mise_a_jour', '{{ $plugin['installed_version'] }}', '{{ $plugin['current_version'] }}')">
                                                 <span>Mettre à jour</span>
                                             </x-button>
                                         @endif
@@ -202,7 +202,24 @@
                     completed: false,
                     eventSource: null,
 
-                    lancerAction(id, nom, type) {
+                    lancerAction(id, nom, type, installedVer = null, currentVer = null) {
+                        if (type === 'mise_a_jour' && installedVer && currentVer) {
+                            const getMajor = (v) => {
+                                const clean = v.toLowerCase().replace(/^v/, '');
+                                return parseInt(clean.split('.')[0]) || 0;
+                            };
+                            if (getMajor(installedVer) !== getMajor(currentVer)) {
+                                const confirmUpdate = confirm(
+                                    `Attention : Vous allez mettre à jour le plugin de la version ${installedVer} à la version ${currentVer}.\n\n` +
+                                    `Il s'agit d'une mise à jour majeure. Toutes vos données associées à ce plugin seront définitivement effacées.\n\n` +
+                                    `Voulez-vous vraiment continuer ?`
+                                );
+                                if (!confirmUpdate) {
+                                    return;
+                                }
+                            }
+                        }
+
                         this.pluginNom = nom;
                         this.actionType = type;
                         this.progress = 0;

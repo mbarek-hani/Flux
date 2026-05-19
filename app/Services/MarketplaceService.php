@@ -79,6 +79,10 @@ class MarketplaceService
         string $pluginId,
         callable $onProgress,
     ): bool {
+        $localPlugin = Plugin::where('identifiant', $pluginId)->first();
+        $isUpdate = $localPlugin && $localPlugin->installe_le !== null;
+        $actionNoun = $isUpdate ? 'la mise à jour' : "l'installation";
+        
         // Étape 1 : Connexion au registre
         $onProgress('Connexion au registre FluxHUB...', 10);
 
@@ -102,7 +106,7 @@ class MarketplaceService
         }
 
         // Étape 3 : Télécharger l'archive du plugin
-        $onProgress("Téléchargement de l'archive du plugin...", 40);
+        $onProgress("Téléchargement de l'archive pour " . $actionNoun . "...", 40);
         try {
             $downloadResponse = Http::timeout(30)->get(
                 "{$this->registryUrl}/v1/marketplace/plugins/{$pluginId}/download",
@@ -165,7 +169,7 @@ class MarketplaceService
 
         // Étape 7 : Extraction zip
         $onProgress(
-            'Décompression et installation des fichiers du plugin...',
+            $isUpdate ? 'Décompression et application de la mise à jour des fichiers du plugin...' : 'Décompression et installation des fichiers du plugin...',
             90,
         );
 
@@ -238,6 +242,21 @@ class MarketplaceService
         $folderName = $parties[1];
         $targetDir = base_path('plugins/'.$folderName);
 
+        $pluginIdentifiant = $manifestContent['identifiant'] ?? $folderName;
+        $runMigrations = true;
+
+        if ($isUpdate && $localPlugin) {
+            $oldVersion = $localPlugin->version;
+            $newVersion = $manifestContent['version'] ?? $pluginVersion;
+            
+            if ($this->hasMajorVersionChange($oldVersion, $newVersion)) {
+                $onProgress('Mise à jour majeure détectée. Suppression des anciennes données...', 88);
+                $manager->desinstaller($pluginIdentifiant);
+            } else {
+                $runMigrations = false;
+            }
+        }
+
         // Si le dossier existe déjà (mise à jour), on le supprime
         if (File::exists($targetDir)) {
             File::deleteDirectory($targetDir);
@@ -253,11 +272,9 @@ class MarketplaceService
         File::deleteDirectory($tempDir);
 
         // Étape 8 : Enregistrer en BDD
-        $onProgress('Enregistrement en base de données...', 91);
+        $onProgress($isUpdate ? 'Mise à jour de la base de données...' : 'Enregistrement en base de données...', 91);
 
-        $pluginIdentifiant = $manifestContent['identifiant'] ?? $folderName;
-
-        // Supprimer l'ancien enregistrement s'il existe (pour le cas des mises à jour)
+        // Supprimer l'ancien enregistrement s'il existe (pour le cas des mises à jour non-majeures)
         Plugin::where('identifiant', $pluginIdentifiant)->delete();
 
         $plugin = Plugin::create([
@@ -274,9 +291,9 @@ class MarketplaceService
         // Réinitialiser le gestionnaire pour découvrir le nouveau plugin sur le disque
         $manager->initialiser();
 
-        $manager->installer($plugin->identifiant);
+        $manager->installer($plugin->identifiant, $runMigrations);
 
-        $onProgress('Installation réussie !', 100);
+        $onProgress($isUpdate ? 'Mise à jour réussie !' : 'Installation réussie !', 100);
 
         return true;
     }
@@ -395,4 +412,23 @@ class MarketplaceService
             'total_pages' => 1,
         ];
     }
+
+    private function hasMajorVersionChange(?string $v1, ?string $v2): bool
+    {
+        if (! $v1 || ! $v2) {
+            return false;
+        }
+
+        $clean1 = ltrim(strtolower($v1), 'v');
+        $clean2 = ltrim(strtolower($v2), 'v');
+
+        $parts1 = explode('.', $clean1);
+        $parts2 = explode('.', $clean2);
+
+        $m1 = (int) ($parts1[0] ?? 0);
+        $m2 = (int) ($parts2[0] ?? 0);
+
+        return $m1 !== $m2;
+    }
 }
+

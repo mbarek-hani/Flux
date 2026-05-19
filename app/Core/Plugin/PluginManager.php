@@ -86,15 +86,39 @@ class PluginManager
         try {
             $plugin->activer();
 
+            $nom = $plugin->getNom();
+            $version = $plugin->getVersion();
+            $metadonnees = $plugin->getManifest();
+
+            try {
+                $refClass = new \ReflectionClass(get_class($plugin));
+                $cheminRacine = dirname($refClass->getFileName(), 2);
+                $manifestPath = $cheminRacine.'/manifest.json';
+                if (file_exists($manifestPath)) {
+                    $manifestContent = json_decode(file_get_contents($manifestPath), true);
+                    if ($manifestContent) {
+                        if (isset($manifestContent['nom'])) {
+                            $nom = $manifestContent['nom'];
+                        }
+                        if (isset($manifestContent['version'])) {
+                            $version = $manifestContent['version'];
+                        }
+                        $metadonnees = $manifestContent;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Fallback to stale values on reflection failure
+            }
+
             PluginModele::updateOrCreate(
                 ['identifiant' => $id],
                 [
-                    'nom' => $plugin->getNom(),
-                    'version' => $plugin->getVersion(),
+                    'nom' => $nom,
+                    'version' => $version,
                     'actif' => true,
                     'active_le' => now(),
                     'installe_le' => now(),
-                    'metadonnees' => $plugin->getManifest(),
+                    'metadonnees' => $metadonnees,
                 ],
             );
 
@@ -128,10 +152,12 @@ class PluginManager
         }
     }
 
-    public function installer(string $id): void
+    public function installer(string $id, bool $runMigrations = true): void
     {
         $plugin = $this->pluginsDecouverts[$id] ?? null;
-        $plugin->installer();
+        if ($runMigrations && $plugin) {
+            $plugin->installer();
+        }
         $this->activer($id);
     }
 
