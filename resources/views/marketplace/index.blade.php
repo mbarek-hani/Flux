@@ -34,13 +34,23 @@
             </div>
 
             {{-- Grille des plugins --}}
-            @if(empty($plugins))
+            @if(count($plugins) === 0)
                 <x-card class="u-mt-4" style="margin-top: 1.5rem;">
                     <div class="p-empty">
                         <x-custom-icon name="puzzle" class="p-empty__icon" />
-                        <h3 class="p-empty__title">Aucun plugin trouvé</h3>
+                        <h3 class="p-empty__title">
+                            @if($search)
+                                Aucun plugin trouvé
+                            @else
+                                Aucun plugin disponible
+                            @endif
+                        </h3>
                         <p class="p-empty__text">
-                            Nous n'avons trouvé aucun plugin dans la boutique correspondant à vos critères de recherche.
+                            @if($search)
+                                Nous n'avons trouvé aucun plugin dans la boutique correspondant à vos critères de recherche.
+                            @else
+                                Il n'y a aucun plugin disponible dans la boutique pour le moment.
+                            @endif
                         </p>
                     </div>
                 </x-card>
