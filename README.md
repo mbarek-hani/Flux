@@ -21,6 +21,7 @@ Flux a été conçu pour être facilement extensible. Les développeurs peuvent 
 
 **Découvrez comment créer vos propres extensions :**
 [Guide de Développement de Plugins](docs/guide_de_developpement_de_plugins.md)
+**Voici une plugin exemple :** [AiAnalytics](https://github.com/mbarek-hani/AiAnalytics)
 
 ## Stack Technique
 
