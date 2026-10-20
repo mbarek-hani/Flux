@@ -89,10 +89,6 @@ export function closeModal(name, options = {}) {
         if (notify) {
             modal.dispatchEvent(new CustomEvent('modal-closed', { detail: modalName(modal) }));
         }
-
-        if (document.activeElement === document.body) {
-            return;
-        }
     };
 
     window.clearTimeout(modal.closeTimer);

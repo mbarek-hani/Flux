@@ -1,25 +1,32 @@
 @layer components {
+    body.has-modal {
+        overflow-y: hidden;
+    }
+
     .c-modal {
         position: fixed;
         inset: 0;
-        overflow-y: auto;
-        padding: 1.5rem 1rem;
         z-index: var(--z-modal);
+        padding: 1.5rem 1rem;
+        overflow-y: auto;
     }
 
     @media (min-width: 640px) {
         .c-modal {
-            padding-left: 0;
             padding-right: 0;
+            padding-left: 0;
         }
     }
 
     .c-modal__overlay {
         position: fixed;
         inset: 0;
-        transition-property: all;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: var(--transition-slow);
+        opacity: 0;
+        transition: opacity var(--transition-base) ease-out;
+    }
+
+    .c-modal.is-open .c-modal__overlay {
+        opacity: 1;
     }
 
     .c-modal__backdrop {
@@ -33,20 +40,21 @@
         position: relative;
         z-index: 10;
         margin-bottom: 1.5rem;
+        overflow: hidden;
         background-color: var(--surface-white);
         border-radius: var(--radius-lg);
-        overflow: hidden;
         box-shadow: var(--shadow-xl);
-        transition-property: all;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: var(--transition-slow);
+        opacity: 0;
+        transform: translateY(1rem);
+        transition: opacity var(--transition-base) ease-out, transform var(--transition-base) ease-out;
     }
 
     @media (min-width: 640px) {
         .c-modal__content {
             width: 100%;
-            margin-left: auto;
             margin-right: auto;
+            margin-left: auto;
+            transform: translateY(0) scale(0.95);
         }
 
         .c-modal__content--sm { max-width: 24rem; }
@@ -56,23 +64,8 @@
         .c-modal__content--2xl { max-width: 42rem; }
     }
 
-    .c-transition-modal-enter { transition: all 0.3s ease-out; }
-    .c-transition-modal-enter-start { opacity: 0; }
-    .c-transition-modal-enter-end { opacity: 1; }
-    .c-transition-modal-leave { transition: all 0.2s ease-in; }
-    .c-transition-modal-leave-start { opacity: 1; }
-    .c-transition-modal-leave-end { opacity: 0; }
-
-    .c-transition-modal-content-enter { transition: all 0.3s ease-out; }
-    .c-transition-modal-content-enter-start { opacity: 0; transform: translateY(1rem); }
-    @media (min-width: 640px) {
-        .c-transition-modal-content-enter-start { transform: translateY(0) scale(0.95); }
-    }
-    .c-transition-modal-content-enter-end { opacity: 1; transform: translateY(0) scale(1); }
-    .c-transition-modal-content-leave { transition: all 0.2s ease-in; }
-    .c-transition-modal-content-leave-start { opacity: 1; transform: translateY(0) scale(1); }
-    .c-transition-modal-content-leave-end { opacity: 0; transform: translateY(1rem); }
-    @media (min-width: 640px) {
-        .c-transition-modal-content-leave-end { transform: translateY(0) scale(0.95); }
+    .c-modal.is-open .c-modal__content {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }

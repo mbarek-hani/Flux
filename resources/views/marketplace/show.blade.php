@@ -152,7 +152,7 @@
         </div>
 
         {{-- Modal de progression en temps réel (SSE) --}}
-        <x-modal name="progress-modal" focusable closable="completed || errorOccurred">
+        <x-modal name="progress-modal" focusable :closable="false">
             <div class="c-progress-container">
                 <h3 class="c-progress-title">
                     <span x-text="actionType === 'installation' ? 'Installation de ' : (actionType === 'mise_a_jour' ? 'Mise à jour de ' : 'Désinstallation de ')"></span>
