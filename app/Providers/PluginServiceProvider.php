@@ -1,7 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
+use App\Console\Commands\PluginCacheCommand;
+use App\Console\Commands\PluginClearCommand;
 use App\Core\Plugin\PluginAutoloader;
 use App\Core\Plugin\PluginDiscovery;
 use App\Core\Plugin\PluginManager;
@@ -22,7 +26,16 @@ class PluginServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->enregistrerDirectivesBlade();
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                PluginCacheCommand::class,
+                PluginClearCommand::class,
+            ]);
+        }
+
         if (! $this->doitIgnorer()) {
+            /** @var PluginManager $manager */
             $manager = $this->app->make(PluginManager::class);
             $manager->initialiser();
         }
@@ -38,13 +51,13 @@ class PluginServiceProvider extends ServiceProvider
             'hook',
             fn (
                 string $expression,
-            ) => "<?php echo implode('', app(\App\Core\Plugin\PluginManager::class)->executerHook({$expression})); ?>",
+            ): string => "<?php echo implode('', app(\App\Core\Plugin\PluginManager::class)->executerHook({$expression})); ?>",
         );
     }
 
     /**
      * Détermine si l'initialisation des plugins doit être ignorée.
-     * Cas ignorés : migrate, migrate:fresh, migrate:rollback, tests, etc.
+     * Cas ignorés : migrate, migrate:fresh, migrate:rollback, tests, plugin:clear, etc.
      */
     private function doitIgnorer(): bool
     {
@@ -63,11 +76,13 @@ class PluginServiceProvider extends ServiceProvider
             'db:seed',
             'db:wipe',
             'schema:dump',
+            'plugin:clear',
+            'plugin:cache',
         ];
 
         // Récupère la commande artisan en cours d'exécution
         $argv = $_SERVER['argv'] ?? [];
-        $commandeEnCours = $argv[1] ?? '';
+        $commandeEnCours = (string) ($argv[1] ?? '');
 
         foreach ($commandesIgnorees as $commande) {
             if (str_starts_with($commandeEnCours, $commande)) {

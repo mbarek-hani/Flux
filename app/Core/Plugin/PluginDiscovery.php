@@ -1,104 +1,133 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Core\Plugin;
 
 use Illuminate\Support\Facades\Log;
 
 /**
- * Scanne le dossier /plugins et retourne toutes les
- * instances de plugins valides trouvées.
+ * Scanne le dossier /plugins ou lit le cache pour découvrir les métadonnées
+ * des plugins sans instancier leurs classes prématurément (lazy-loading).
  */
 class PluginDiscovery
 {
     private string $dossierPlugins;
 
-    public function __construct(private PluginAutoloader $autoloader)
-    {
-        $this->dossierPlugins = base_path('plugins');
+    private string $cheminCache;
+
+    public function __construct(
+        private readonly PluginAutoloader $autoloader,
+        ?string $dossierPlugins = null,
+        ?string $cheminCache = null,
+    ) {
+        $this->dossierPlugins = $dossierPlugins ?? base_path('plugins');
+        $this->cheminCache = $cheminCache ?? base_path('bootstrap/cache/plugins.php');
     }
 
     /**
-     * @return array<string, PluginInterface>
+     * Retourne la liste des métadonnées de tous les plugins valides détectés.
+     *
+     * @return array<string, PluginMetadata>
      */
     public function decouvrir(): array
+    {
+        if ($this->estEnCache()) {
+            return $this->chargerDepuisCache();
+        }
+
+        return $this->scannerDossier();
+    }
+
+    /**
+     * Scanne le système de fichiers pour lire les manifestes de plugins.
+     * Enregistre les préfixes dans l'autoloader SANS instancier les classes.
+     *
+     * @return array<string, PluginMetadata>
+     */
+    public function scannerDossier(): array
     {
         $plugins = [];
 
         if (! is_dir($this->dossierPlugins)) {
-            Log::warning(
-                "Le dossier plugins n'existe pas : {$this->dossierPlugins}",
-            );
+            Log::warning("Le dossier plugins n'existe pas : {$this->dossierPlugins}");
 
             return $plugins;
         }
 
         $dossiers = glob($this->dossierPlugins.'/*', GLOB_ONLYDIR);
-        if (! $dossiers) {
-            Log::warning(
-                "There was an error trying to match directories inside {$this->dossierPlugins}",
-            );
-
+        if ($dossiers === false || empty($dossiers)) {
             return $plugins;
         }
 
         foreach ($dossiers as $dossier) {
-            $plugin = $this->chargerPlugin($dossier);
+            $metadata = $this->lireMetadataDossier($dossier);
 
-            if ($plugin !== null) {
-                $plugins[$plugin->getIdentifiant()] = $plugin;
+            if ($metadata !== null) {
+                // Enregistre le namespace dans l'autoloader
+                $this->autoloader->addNamespace(
+                    $metadata->namespace,
+                    $metadata->cheminDossier.'/src',
+                );
+
+                $plugins[$metadata->identifiant] = $metadata;
             }
         }
 
         return $plugins;
     }
 
-    private function chargerPlugin(string $dossier): ?PluginInterface
+    /**
+     * Instancie un plugin de manière différée (lazy-loading) et sécurisée.
+     */
+    public function instancier(PluginMetadata $metadata): ?PluginInterface
     {
-        $manifest = $this->lireManifest($dossier);
+        // 1. Charger les dépendances Vendor du plugin si présentes
+        $this->autoloader->chargerVendor($metadata->cheminDossier);
 
-        if ($manifest === null) {
-            return null;
-        }
+        // 2. S'assurer que le namespace est enregistré
+        $this->autoloader->addNamespace(
+            $metadata->namespace,
+            $metadata->cheminDossier.'/src',
+        );
 
-        $classePlugin = $manifest['classe'] ?? null;
-
-        if (! $classePlugin) {
-            Log::error("Clé 'classe' manquante dans {$dossier}/manifest.json");
-
-            return null;
-        }
-
-        $namespaceRacine = $this->extraireNamespacePlugin($classePlugin);
-
-        if ($namespaceRacine === null) {
-            Log::error("Namespace plugin invalide : {$classePlugin}");
+        // 3. Vérifier l'existence de la classe
+        if (! class_exists($metadata->classe)) {
+            Log::error("Classe plugin introuvable : {$metadata->classe}");
 
             return null;
         }
 
-        $this->autoloader->addNamespace($namespaceRacine, $dossier.'/src');
-
-        if (! class_exists($classePlugin)) {
-            Log::error("Classe plugin introuvable : {$classePlugin}");
-
-            return null;
-        }
-
-        if (! is_subclass_of($classePlugin, AbstractPlugin::class)) {
-            Log::error(
-                "La classe {$classePlugin} n'hérite pas de 'AbstractPlugin'",
-            );
+        // 4. Vérifier la conformité de l'interface
+        if (! is_subclass_of($metadata->classe, PluginInterface::class)) {
+            Log::error("La classe {$metadata->classe} n'implémente pas PluginInterface");
 
             return null;
         }
 
-        return app($classePlugin);
+        // 5. Instanciation sécurisée via le conteneur de services
+        try {
+            $instance = app($metadata->classe);
+
+            if (! $instance instanceof PluginInterface) {
+                return null;
+            }
+
+            return $instance;
+        } catch (\Throwable $e) {
+            Log::error("Échec d'instanciation du plugin [{$metadata->identifiant}] : ".$e->getMessage(), [
+                'classe' => $metadata->classe,
+                'exception' => $e,
+            ]);
+
+            return null;
+        }
     }
 
     /**
-     * @return array<string, mixed>|null
+     * Lit et parse le fichier manifest.json d'un dossier donné.
      */
-    private function lireManifest(string $dossier): ?array
+    public function lireMetadataDossier(string $dossier): ?PluginMetadata
     {
         $cheminManifest = $dossier.'/manifest.json';
 
@@ -107,28 +136,112 @@ class PluginDiscovery
         }
 
         $contenu = file_get_contents($cheminManifest);
-        $manifest = json_decode($contenu, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            Log::error(
-                "JSON invalide dans {$cheminManifest} : ".
-                    json_last_error_msg(),
-            );
+        if ($contenu === false) {
+            Log::error("Impossible de lire le fichier {$cheminManifest}");
 
             return null;
         }
 
-        return $manifest;
+        $manifest = json_decode($contenu, true);
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($manifest)) {
+            Log::error("JSON invalide dans {$cheminManifest} : ".json_last_error_msg());
+
+            return null;
+        }
+
+        return PluginMetadata::fromManifest($dossier, $manifest);
     }
 
-    private function extraireNamespacePlugin(string $classePlugin): ?string
+    /**
+     * Génère le fichier de cache compilé des plugins.
+     *
+     * @return array<string, PluginMetadata>
+     */
+    public function mettreEnCache(): array
     {
-        $parties = explode('\\', trim($classePlugin, '\\'));
+        $plugins = $this->scannerDossier();
+        $cacheData = [];
 
-        if (count($parties) < 2 || $parties[0] !== 'Plugins') {
-            return null;
+        foreach ($plugins as $id => $metadata) {
+            $cacheData[$id] = $metadata->toArray();
         }
 
-        return $parties[0].'\\'.$parties[1];
+        $dossierCache = dirname($this->cheminCache);
+        if (! is_dir($dossierCache)) {
+            mkdir($dossierCache, 0755, true);
+        }
+
+        file_put_contents(
+            $this->cheminCache,
+            '<?php'.PHP_EOL.PHP_EOL.'return '.var_export($cacheData, true).';'.PHP_EOL,
+        );
+
+        return $plugins;
+    }
+
+    /**
+     * Supprime le fichier de cache compilé.
+     */
+    public function viderCache(): bool
+    {
+        if (file_exists($this->cheminCache)) {
+            return unlink($this->cheminCache);
+        }
+
+        return true;
+    }
+
+    public function estEnCache(): bool
+    {
+        return file_exists($this->cheminCache);
+    }
+
+    public function getCheminCache(): string
+    {
+        return $this->cheminCache;
+    }
+
+    public function getDossierPlugins(): string
+    {
+        return $this->dossierPlugins;
+    }
+
+    /**
+     * Charge les plugins depuis le fichier de cache compilé.
+     *
+     * @return array<string, PluginMetadata>
+     */
+    private function chargerDepuisCache(): array
+    {
+        try {
+            $cacheData = require $this->cheminCache;
+
+            if (! is_array($cacheData)) {
+                return $this->scannerDossier();
+            }
+
+            $plugins = [];
+
+            foreach ($cacheData as $id => $data) {
+                if (is_array($data)) {
+                    $metadata = PluginMetadata::fromArray($data);
+
+                    if ($metadata !== null) {
+                        $this->autoloader->addNamespace(
+                            $metadata->namespace,
+                            $metadata->cheminDossier.'/src',
+                        );
+
+                        $plugins[$metadata->identifiant] = $metadata;
+                    }
+                }
+            }
+
+            return $plugins;
+        } catch (\Throwable $e) {
+            Log::error('Erreur lors du chargement du cache des plugins : '.$e->getMessage());
+
+            return $this->scannerDossier();
+        }
     }
 }

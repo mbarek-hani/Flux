@@ -54,11 +54,25 @@ php artisan remove:plugin MonPlugin
 > [!WARNING]  
 > Cette action supprimera définitivement le code source de ce plugin.
 
+### Mettre en cache pour la production
+
+Pour optimiser les performances de démarrage en production, Flux compile la découverte des plugins en un fichier unique (`bootstrap/cache/plugins.php`) :
+
+```bash
+php artisan plugin:cache
+```
+
+Pour invalider et recharger dynamiquement la découverte :
+
+```bash
+php artisan plugin:clear
+```
+
 ---
 
 ## 2. Architecture d'un Plugin
 
-Une fois généré, un plugin possède une arborescence standardisée (conforme à la norme PSR-4 via un autoloader dynamique interne) :
+Une fois généré, un plugin possède une arborescence standardisée (conforme à la norme PSR-4 via un autoloader dynamique interne) avec chargement différé (*lazy-loading*) :
 
 ```text
 plugins/
@@ -69,6 +83,8 @@ plugins/
     │   ├── Http/Controllers/               ← (Optionnel) Contrôleurs
     │   ├── Services/                       ← (Optionnel) Services
     │   └── Models/                         ← (Optionnel) Modèles Eloquent
+    ├── vendor/                             ← (Optionnel) Dépendances Composer du plugin
+    │   └── autoload.php
     ├── database/migrations/                ← (Optionnel) Migrations DB
     ├── resources/
     │   ├── views/                          ← (Optionnel) Vues Blade
@@ -76,6 +92,10 @@ plugins/
     └── routes/
         └── web.php                         ← (Optionnel) Fichier de routage
 ```
+
+> [!NOTE]
+> **Chargement différé (Lazy-loading) & Sécurité :**  
+> Flux sépare la phase de découverte (lecture des métadonnées du `manifest.json`) de la phase d'instanciation. Les classes PHP des plugins inactifs ne sont **jamais instanciées** lors du démarrage de l'application. Si un plugin utilise des dépendances Composer isolées (`plugins/MonPlugin/vendor/autoload.php`), celles-ci sont automatiquement prises en charge dès son instanciation.
 
 ---
 

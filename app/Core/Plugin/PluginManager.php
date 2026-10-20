@@ -1,17 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Core\Plugin;
 
 use App\Models\Evenement;
 use App\Models\Plugin as PluginModele;
 use App\Models\Visite;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class PluginManager
 {
-    /** @var array<string, PluginInterface> */
+    /** @var array<string, PluginMetadata> */
     private array $pluginsDecouverts = [];
 
     /** @var array<string, PluginInterface> */
@@ -20,7 +23,7 @@ class PluginManager
     /** @var array<string, PluginInterface[]> */
     private array $hooks = [];
 
-    public function __construct(private PluginDiscovery $discovery) {}
+    public function __construct(private readonly PluginDiscovery $discovery) {}
 
     public function initialiser(): void
     {
@@ -31,11 +34,28 @@ class PluginManager
         $this->pluginsDecouverts = $this->discovery->decouvrir();
         $actifs = $this->getActifsEnBdd();
 
-        foreach ($this->pluginsDecouverts as $id => $plugin) {
-            if (in_array($id, $actifs)) {
-                $this->chargerPlugin($plugin);
+        foreach ($actifs as $id) {
+            if (isset($this->pluginsDecouverts[$id])) {
+                $metadata = $this->pluginsDecouverts[$id];
+                $plugin = $this->discovery->instancier($metadata);
+
+                if ($plugin !== null) {
+                    $this->chargerPlugin($plugin);
+                }
             }
         }
+    }
+
+    /**
+     * Réinitialise le gestionnaire en invalidant les caches et en rechargeant.
+     */
+    public function reinitialiser(): void
+    {
+        $this->discovery->viderCache();
+        Cache::forget('plugins.actifs');
+        $this->pluginsActifs = [];
+        $this->hooks = [];
+        $this->initialiser();
     }
 
     private function tableExiste(): bool
@@ -51,9 +71,11 @@ class PluginManager
     private function getActifsEnBdd(): array
     {
         try {
-            return PluginModele::where('actif', true)
-                ->pluck('identifiant')
-                ->toArray();
+            return Cache::rememberForever('plugins.actifs', function () {
+                return PluginModele::where('actif', true)
+                    ->pluck('identifiant')
+                    ->toArray();
+            });
         } catch (\Throwable) {
             return [];
         }
@@ -70,15 +92,20 @@ class PluginManager
 
             $this->pluginsActifs[$plugin->getIdentifiant()] = $plugin;
         } catch (\Throwable $e) {
-            Log::error(
-                "Plugin [{$plugin->getIdentifiant()}] : ".$e->getMessage(),
-            );
+            Log::error("Plugin [{$plugin->getIdentifiant()}] : ".$e->getMessage(), [
+                'exception' => $e,
+            ]);
         }
     }
 
     public function activer(string $id): bool
     {
-        $plugin = $this->pluginsDecouverts[$id] ?? null;
+        $metadata = $this->pluginsDecouverts[$id] ?? null;
+        if (! $metadata) {
+            return false;
+        }
+
+        $plugin = $this->pluginsActifs[$id] ?? $this->discovery->instancier($metadata);
         if (! $plugin) {
             return false;
         }
@@ -86,47 +113,26 @@ class PluginManager
         try {
             $plugin->activer();
 
-            $nom = $plugin->getNom();
-            $version = $plugin->getVersion();
-            $metadonnees = $plugin->getManifest();
-
-            try {
-                $refClass = new \ReflectionClass(get_class($plugin));
-                $cheminRacine = dirname($refClass->getFileName(), 2);
-                $manifestPath = $cheminRacine.'/manifest.json';
-                if (file_exists($manifestPath)) {
-                    $manifestContent = json_decode(file_get_contents($manifestPath), true);
-                    if ($manifestContent) {
-                        if (isset($manifestContent['nom'])) {
-                            $nom = $manifestContent['nom'];
-                        }
-                        if (isset($manifestContent['version'])) {
-                            $version = $manifestContent['version'];
-                        }
-                        $metadonnees = $manifestContent;
-                    }
-                }
-            } catch (\Throwable $e) {
-                // Fallback to stale values on reflection failure
-            }
-
             PluginModele::updateOrCreate(
                 ['identifiant' => $id],
                 [
-                    'nom' => $nom,
-                    'version' => $version,
+                    'nom' => $plugin->getNom(),
+                    'version' => $plugin->getVersion(),
                     'actif' => true,
                     'active_le' => now(),
                     'installe_le' => now(),
-                    'metadonnees' => $metadonnees,
+                    'metadonnees' => $metadata->manifest,
                 ],
             );
 
+            Cache::forget('plugins.actifs');
             $this->chargerPlugin($plugin);
 
             return true;
         } catch (\Throwable $e) {
-            Log::error("Activation [{$id}] : ".$e->getMessage());
+            Log::error("Activation [{$id}] : ".$e->getMessage(), [
+                'exception' => $e,
+            ]);
 
             return false;
         }
@@ -136,17 +142,34 @@ class PluginManager
     {
         $plugin = $this->pluginsActifs[$id] ?? null;
         if (! $plugin) {
-            return false;
+            $metadata = $this->pluginsDecouverts[$id] ?? null;
+            if ($metadata) {
+                $plugin = $this->discovery->instancier($metadata);
+            }
         }
 
         try {
-            $plugin->desactiver();
+            if ($plugin) {
+                $plugin->desactiver();
+            }
+
             PluginModele::where('identifiant', $id)->update(['actif' => false]);
+            Cache::forget('plugins.actifs');
             unset($this->pluginsActifs[$id]);
+
+            // Nettoyage des hooks associés à ce plugin
+            foreach ($this->hooks as $hook => $plugins) {
+                $this->hooks[$hook] = array_values(array_filter(
+                    $plugins,
+                    fn (PluginInterface $p) => $p->getIdentifiant() !== $id,
+                ));
+            }
 
             return true;
         } catch (\Throwable $e) {
-            Log::error("Désactivation [{$id}] : ".$e->getMessage());
+            Log::error("Désactivation [{$id}] : ".$e->getMessage(), [
+                'exception' => $e,
+            ]);
 
             return false;
         }
@@ -154,7 +177,7 @@ class PluginManager
 
     public function installer(string $id, bool $runMigrations = true): void
     {
-        $plugin = $this->pluginsDecouverts[$id] ?? null;
+        $plugin = $this->getPluginInstance($id);
         if ($runMigrations && $plugin) {
             $plugin->installer();
         }
@@ -163,22 +186,33 @@ class PluginManager
 
     public function desinstaller(string $id): void
     {
-        $plugin = $this->pluginsActifs[$id] ?? $this->pluginsDecouverts[$id] ?? null;
+        $plugin = $this->getPluginInstance($id);
         $this->desactiver($id);
-        $plugin->desinstaller();
+
+        if ($plugin) {
+            $plugin->desinstaller();
+        }
 
         PluginModele::where('identifiant', $id)->delete();
+        Cache::forget('plugins.actifs');
     }
 
     // Hooks
 
-    /** @return string[] */
+    /**
+     * @param  array<string, mixed>  $donnees
+     * @return string[]
+     */
     public function executerHook(string $hook, array $donnees = []): array
     {
         $resultats = [];
 
         foreach ($this->hooks[$hook] ?? [] as $plugin) {
-            $resultats[] = $plugin->rendrePourHook($hook, $donnees); // now PluginInterface has rendrePourHook
+            try {
+                $resultats[] = $plugin->rendrePourHook($hook, $donnees);
+            } catch (\Throwable $e) {
+                Log::error("Erreur lors de l'exécution du hook [{$hook}] par [{$plugin->getIdentifiant()}] : ".$e->getMessage());
+            }
         }
 
         return $resultats;
@@ -189,13 +223,20 @@ class PluginManager
     /**
      * Passe les données de tracking à travers tous les plugins actifs.
      * Chaque plugin peut enrichir les données.
+     *
+     * @param  array<string, mixed>  $donnees
+     * @return array<string, mixed>
      */
     public function enrichirTracking(array $donnees, Request $request): array
     {
         foreach ($this->pluginsActifs as $plugin) {
-            $resultat = $plugin->enrichirTracking($donnees, $request);
-            if ($resultat !== null) {
-                $donnees = $resultat;
+            try {
+                $resultat = $plugin->enrichirTracking($donnees, $request);
+                if ($resultat !== null) {
+                    $donnees = $resultat;
+                }
+            } catch (\Throwable $e) {
+                Log::error("Plugin [{$plugin->getIdentifiant()}] enrichirTracking : ".$e->getMessage());
             }
         }
 
@@ -204,37 +245,35 @@ class PluginManager
 
     /**
      * Notifie tous les plugins après l'enregistrement d'une visite.
+     *
+     * @param  array<string, mixed>  $donnees
      */
-    public function apresVisite(Visite $visite, array $donnees, $request): void
+    public function apresVisite(Visite $visite, array $donnees, Request $request): void
     {
         foreach ($this->pluginsActifs as $plugin) {
             try {
                 $plugin->apresVisite($visite, $donnees, $request);
             } catch (\Throwable $e) {
-                Log::error(
-                    "Plugin [{$plugin->getIdentifiant()}] apresVisite : ".
-                    $e->getMessage(),
-                );
+                Log::error("Plugin [{$plugin->getIdentifiant()}] apresVisite : ".$e->getMessage());
             }
         }
     }
 
     /**
      * Notifie tous les plugins après l'enregistrement d'un événement.
+     *
+     * @param  array<string, mixed>  $donnees
      */
     public function apresEvenement(
         Evenement $evenement,
         array $donnees,
-        $request,
+        Request $request,
     ): void {
         foreach ($this->pluginsActifs as $plugin) {
             try {
                 $plugin->apresEvenement($evenement, $donnees, $request);
             } catch (\Throwable $e) {
-                Log::error(
-                    "Plugin [{$plugin->getIdentifiant()}] apresEvenement : ".
-                    $e->getMessage(),
-                );
+                Log::error("Plugin [{$plugin->getIdentifiant()}] apresEvenement : ".$e->getMessage());
             }
         }
     }
@@ -256,7 +295,7 @@ class PluginManager
         return $onglets;
     }
 
-    /** @return array<string, array> */
+    /** @return array<string, array{nom: string, champs: array}> */
     public function getTousLesReglages(): array
     {
         $reglages = [];
@@ -331,7 +370,39 @@ class PluginManager
 
     // Accesseurs
 
-    /** @return array<string, PluginInterface> */
+    /**
+     * Récupère un plugin actif.
+     */
+    public function getPlugin(string $id): ?PluginInterface
+    {
+        return $this->pluginsActifs[$id] ?? null;
+    }
+
+    /**
+     * Récupère une instance de plugin (déjà active ou instanciée à la demande).
+     */
+    public function getPluginInstance(string $id): ?PluginInterface
+    {
+        if (isset($this->pluginsActifs[$id])) {
+            return $this->pluginsActifs[$id];
+        }
+
+        if (isset($this->pluginsDecouverts[$id])) {
+            return $this->discovery->instancier($this->pluginsDecouverts[$id]);
+        }
+
+        return null;
+    }
+
+    /**
+     * Récupère les métadonnées d'un plugin découvert.
+     */
+    public function getPluginMetadata(string $id): ?PluginMetadata
+    {
+        return $this->pluginsDecouverts[$id] ?? null;
+    }
+
+    /** @return array<string, PluginMetadata> */
     public function getPluginsDecouverts(): array
     {
         return $this->pluginsDecouverts;
