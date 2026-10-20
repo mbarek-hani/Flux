@@ -67,4 +67,10 @@
     .c-theme-preview__line--short {
         width: 50%;
     }
+
+    .c-theme-card__label {
+        font-size: var(--text-sm);
+        font-weight: 600;
+        color: var(--gray-900);
+    }
 }
