@@ -1,9 +1,9 @@
-@props(['type' => 'succes', 'message' => ''])
+@props(['type' => 'success', 'message' => ''])
 
 @php
     $modifier = match ($type) {
-        'succes' => 'c-alert--success',
-        'erreur' => 'c-alert--erreur',
+        'success' => 'c-alert--success',
+        'error' => 'c-alert--erreur',
         'warning' => 'c-alert--warning',
         default => 'c-alert--info',
     };

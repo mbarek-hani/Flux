@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use App\Models\Site;
@@ -8,66 +10,66 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class EvenementSeeder extends Seeder
+class EventsSeeder extends Seeder
 {
     private array $types = [
-        'clic',
-        'formulaire',
-        'telechargement',
-        'inscription',
-        'achat',
-        'partage',
-        'recherche',
+        'click',
+        'form',
+        'download',
+        'signup',
+        'purchase',
+        'share',
+        'search',
         'video',
     ];
 
-    private array $evenements = [
-        'clic' => [
-            ['nom' => 'Clic bouton inscription', 'donnees' => '{"bouton": "hero-cta"}'],
-            ['nom' => 'Clic menu navigation', 'donnees' => '{"menu": "principal"}'],
-            ['nom' => 'Clic lien externe', 'donnees' => '{"url": "https://github.com"}'],
-            ['nom' => 'Clic bouton tarifs', 'donnees' => '{"plan": "pro"}'],
+    private array $events = [
+        'click' => [
+            ['name' => 'Signup button click', 'data' => '{"button": "hero-cta"}'],
+            ['name' => 'Navigation menu click', 'data' => '{"menu": "main"}'],
+            ['name' => 'External link click', 'data' => '{"url": "https://github.com"}'],
+            ['name' => 'Pricing button click', 'data' => '{"plan": "pro"}'],
         ],
-        'formulaire' => [
-            ['nom' => 'Soumission formulaire contact', 'donnees' => '{"champs": 4}'],
-            ['nom' => 'Soumission newsletter', 'donnees' => '{"source": "footer"}'],
-            ['nom' => 'Soumission recherche', 'donnees' => '{"terme": "analytics"}'],
+        'form' => [
+            ['name' => 'Contact form submitted', 'data' => '{"fields": 4}'],
+            ['name' => 'Newsletter submitted', 'data' => '{"source": "footer"}'],
+            ['name' => 'Search submitted', 'data' => '{"term": "analytics"}'],
         ],
-        'telechargement' => [
-            ['nom' => 'Téléchargement PDF', 'donnees' => '{"fichier": "guide.pdf", "taille": "2.4MB"}'],
-            ['nom' => 'Téléchargement brochure', 'donnees' => '{"fichier": "brochure.pdf", "taille": "1.1MB"}'],
+        'download' => [
+            ['name' => 'PDF download', 'data' => '{"file": "guide.pdf", "size": "2.4MB"}'],
+            ['name' => 'Brochure download', 'data' => '{"file": "brochure.pdf", "size": "1.1MB"}'],
         ],
-        'inscription' => [
-            ['nom' => 'Inscription gratuite', 'donnees' => '{"plan": "gratuit"}'],
-            ['nom' => 'Inscription essai pro', 'donnees' => '{"plan": "pro", "duree": "14 jours"}'],
+        'signup' => [
+            ['name' => 'Free signup', 'data' => '{"plan": "free"}'],
+            ['name' => 'Pro trial signup', 'data' => '{"plan": "pro", "duration": "14 days"}'],
         ],
-        'achat' => [
-            ['nom' => 'Achat plan mensuel', 'donnees' => '{"plan": "pro", "montant": 29.99}'],
-            ['nom' => 'Achat plan annuel', 'donnees' => '{"plan": "pro", "montant": 299.99}'],
-            ['nom' => 'Achat addon', 'donnees' => '{"addon": "api-access", "montant": 9.99}'],
+        'purchase' => [
+            ['name' => 'Monthly plan purchase', 'data' => '{"plan": "pro", "amount": 29.99}'],
+            ['name' => 'Annual plan purchase', 'data' => '{"plan": "pro", "amount": 299.99}'],
+            ['name' => 'Addon purchase', 'data' => '{"addon": "api-access", "amount": 9.99}'],
         ],
-        'partage' => [
-            ['nom' => 'Partage Twitter', 'donnees' => '{"reseau": "twitter"}'],
-            ['nom' => 'Partage LinkedIn', 'donnees' => '{"reseau": "linkedin"}'],
-            ['nom' => 'Partage Facebook', 'donnees' => '{"reseau": "facebook"}'],
+        'share' => [
+            ['name' => 'Twitter share', 'data' => '{"network": "twitter"}'],
+            ['name' => 'LinkedIn share', 'data' => '{"network": "linkedin"}'],
+            ['name' => 'Facebook share', 'data' => '{"network": "facebook"}'],
         ],
-        'recherche' => [
-            ['nom' => 'Recherche interne', 'donnees' => '{"terme": "installation", "resultats": 5}'],
-            ['nom' => 'Recherche interne', 'donnees' => '{"terme": "api", "resultats": 12}'],
-            ['nom' => 'Recherche interne', 'donnees' => '{"terme": "prix", "resultats": 3}'],
+        'search' => [
+            ['name' => 'Internal search', 'data' => '{"term": "installation", "results": 5}'],
+            ['name' => 'Internal search', 'data' => '{"term": "api", "results": 12}'],
+            ['name' => 'Internal search', 'data' => '{"term": "pricing", "results": 3}'],
         ],
         'video' => [
-            ['nom' => 'Lecture vidéo démo', 'donnees' => '{"video": "demo-v2", "duree": 120}'],
-            ['nom' => 'Lecture vidéo tutoriel', 'donnees' => '{"video": "tuto-install", "duree": 300}'],
+            ['name' => 'Demo video played', 'data' => '{"video": "demo-v2", "duration": 120}'],
+            ['name' => 'Tutorial video played', 'data' => '{"video": "install-tutorial", "duration": 300}'],
         ],
     ];
 
-    private array $chemins = [
+    private array $paths = [
         '/',
         '/about',
         '/contact',
         '/blog',
-        '/blog/premier-article',
+        '/blog/first-post',
         '/pricing',
         '/features',
         '/docs',
@@ -75,45 +77,43 @@ class EvenementSeeder extends Seeder
 
     public function run(): void
     {
-        $sites = Site::all();
-
-        foreach ($sites as $site) {
-            $this->genererEvenementsPourSite($site);
-        }
+        Site::query()->each(function (Site $site): void {
+            $this->generateEvents($site);
+        });
     }
 
-    private function genererEvenementsPourSite(Site $site): void
+    private function generateEvents(Site $site): void
     {
-        $evenements = [];
-        $nombreEvenements = rand(80, 200);
+        $events = [];
+        $eventCount = rand(80, 200);
 
-        // Get visit IDs for this site
-        $visiteIds = DB::table('visites')
+        $visitIds = DB::table('visits')
             ->where('site_id', $site->id)
             ->pluck('id')
-            ->toArray();
+            ->all();
 
-        for ($i = 0; $i < $nombreEvenements; $i++) {
-
+        for ($index = 0; $index < $eventCount; $index++) {
             $type = $this->types[array_rand($this->types)];
-            $details = $this->evenements[$type][array_rand($this->evenements[$type])];
-            $dateEvenement = Carbon::now()->subDays(rand(0, 30))->subHours(rand(0, 23))->subMinutes(rand(0, 59));
+            $details = $this->events[$type][array_rand($this->events[$type])];
+            $occurredAt = Carbon::now()
+                ->subDays(rand(0, 30))
+                ->subHours(rand(0, 23))
+                ->subMinutes(rand(0, 59));
 
-            $evenements[] = [
+            $events[] = [
                 'site_id' => $site->id,
-                'visite_id' => ! empty($visiteIds) ? $visiteIds[array_rand($visiteIds)] : null,
+                'visit_id' => $visitIds === [] ? null : $visitIds[array_rand($visitIds)],
                 'session_id' => hash('sha256', Str::random(32)),
                 'type' => $type,
-                'nom' => $details['nom'],
-                'donnees' => $details['donnees'],
-                'chemin' => $this->chemins[array_rand($this->chemins)],
-                'cree_le' => $dateEvenement,
+                'name' => $details['name'],
+                'data' => $details['data'],
+                'path' => $this->paths[array_rand($this->paths)],
+                'created_at' => $occurredAt,
             ];
         }
 
-        // Insert in chunks of 50 for performance
-        foreach (array_chunk($evenements, 50) as $chunk) {
-            DB::table('evenements')->insert($chunk);
+        foreach (array_chunk($events, 50) as $chunk) {
+            DB::table('events')->insert($chunk);
         }
     }
 }

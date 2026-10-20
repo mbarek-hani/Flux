@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use App\Models\Site;
@@ -8,31 +10,31 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class VisiteSeeder extends Seeder
+class VisitsSeeder extends Seeder
 {
-    private array $navigateurs = ['Chrome', 'Firefox', 'Safari', 'Edge', 'Opera'];
+    private array $browsers = ['Chrome', 'Firefox', 'Safari', 'Edge', 'Opera'];
 
-    private array $systemes = ['Windows', 'macOS', 'Linux', 'Android', 'iOS'];
+    private array $operatingSystems = ['Windows', 'macOS', 'Linux', 'Android', 'iOS'];
 
-    private array $appareils = ['ordinateur', 'mobile', 'tablette', 'inconnu'];
+    private array $devices = ['desktop', 'mobile', 'tablet', 'unknown'];
 
-    private array $pays = [
-        ['code' => 'FR', 'nom' => 'France'],
-        ['code' => 'US', 'nom' => 'États-Unis'],
-        ['code' => 'MA', 'nom' => 'Maroc'],
-        ['code' => 'DE', 'nom' => 'Allemagne'],
-        ['code' => 'GB', 'nom' => 'Royaume-Uni'],
-        ['code' => 'CA', 'nom' => 'Canada'],
-        ['code' => 'ES', 'nom' => 'Espagne'],
-        ['code' => 'JP', 'nom' => 'Japon'],
+    private array $countries = [
+        ['code' => 'FR', 'name' => 'France'],
+        ['code' => 'US', 'name' => 'United States'],
+        ['code' => 'MA', 'name' => 'Morocco'],
+        ['code' => 'DE', 'name' => 'Germany'],
+        ['code' => 'GB', 'name' => 'United Kingdom'],
+        ['code' => 'CA', 'name' => 'Canada'],
+        ['code' => 'ES', 'name' => 'Spain'],
+        ['code' => 'JP', 'name' => 'Japan'],
     ];
 
-    private array $chemins = [
+    private array $paths = [
         '/',
         '/about',
         '/contact',
         '/blog',
-        '/blog/premier-article',
+        '/blog/first-post',
         '/blog/laravel-tips',
         '/blog/analytics-guide',
         '/pricing',
@@ -42,22 +44,22 @@ class VisiteSeeder extends Seeder
         '/docs/api',
     ];
 
-    private array $titres = [
-        '/' => 'Accueil',
-        '/about' => 'À propos',
+    private array $titles = [
+        '/' => 'Home',
+        '/about' => 'About',
         '/contact' => 'Contact',
         '/blog' => 'Blog',
-        '/blog/premier-article' => 'Mon premier article',
-        '/blog/laravel-tips' => 'Astuces Laravel',
-        '/blog/analytics-guide' => 'Guide Analytics',
-        '/pricing' => 'Tarifs',
-        '/features' => 'Fonctionnalités',
+        '/blog/first-post' => 'My first post',
+        '/blog/laravel-tips' => 'Laravel tips',
+        '/blog/analytics-guide' => 'Analytics guide',
+        '/pricing' => 'Pricing',
+        '/features' => 'Features',
         '/docs' => 'Documentation',
         '/docs/installation' => 'Installation',
         '/docs/api' => 'API Reference',
     ];
 
-    private array $referents = [
+    private array $referrers = [
         null,
         'https://google.com',
         'https://google.fr',
@@ -69,7 +71,7 @@ class VisiteSeeder extends Seeder
         'https://www.youtube.com',
     ];
 
-    private array $referentsDomaines = [
+    private array $referrerDomains = [
         null,
         'google.com',
         'google.fr',
@@ -85,58 +87,56 @@ class VisiteSeeder extends Seeder
 
     private array $utmMediums = [null, 'cpc', 'social', 'email', 'organic', 'referral'];
 
-    private array $utmCampagnes = [null, 'lancement-v2', 'promo-ete', 'black-friday', 'newsletter-juin'];
+    private array $utmCampaigns = [null, 'v2-launch', 'summer-promo', 'black-friday', 'june-newsletter'];
 
     public function run(): void
     {
-        $sites = Site::all();
-
-        foreach ($sites as $site) {
-            $this->genererVisitesPourSite($site);
-        }
+        Site::query()->each(function (Site $site): void {
+            $this->generateVisits($site);
+        });
     }
 
-    private function genererVisitesPourSite(Site $site): void
+    private function generateVisits(Site $site): void
     {
-        $visites = [];
-        $nombreVisites = rand(150, 300);
+        $visits = [];
+        $visitCount = rand(150, 300);
 
-        // Generate visits for the last 30 days
-        for ($i = 0; $i < $nombreVisites; $i++) {
-
+        for ($index = 0; $index < $visitCount; $index++) {
             $sessionId = hash('sha256', Str::random(32));
-            $chemin = $this->chemins[array_rand($this->chemins)];
-            $pays = $this->pays[array_rand($this->pays)];
-            $refIndex = array_rand($this->referents);
-            $dateVisite = Carbon::now()->subDays(rand(0, 30))->subHours(rand(0, 23))->subMinutes(rand(0, 59));
+            $path = $this->paths[array_rand($this->paths)];
+            $country = $this->countries[array_rand($this->countries)];
+            $referrerIndex = array_rand($this->referrers);
+            $visitedAt = Carbon::now()
+                ->subDays(rand(0, 30))
+                ->subHours(rand(0, 23))
+                ->subMinutes(rand(0, 59));
 
-            $visites[] = [
+            $visits[] = [
                 'site_id' => $site->id,
                 'session_id' => $sessionId,
-                'url' => 'https://'.$site->domaine.$chemin,
-                'chemin' => $chemin,
-                'titre' => $this->titres[$chemin] ?? null,
-                'referent' => $this->referents[$refIndex],
-                'referent_domaine' => $this->referentsDomaines[$refIndex],
+                'url' => 'https://'.$site->domain.$path,
+                'path' => $path,
+                'title' => $this->titles[$path] ?? null,
+                'referrer' => $this->referrers[$referrerIndex],
+                'referrer_domain' => $this->referrerDomains[$referrerIndex],
                 'utm_source' => $this->utmSources[array_rand($this->utmSources)],
                 'utm_medium' => $this->utmMediums[array_rand($this->utmMediums)],
-                'utm_campagne' => $this->utmCampagnes[array_rand($this->utmCampagnes)],
-                'navigateur' => $this->navigateurs[array_rand($this->navigateurs)],
-                'version_navigateur' => (string) rand(90, 130),
-                'systeme_exploitation' => $this->systemes[array_rand($this->systemes)],
-                'appareil' => $this->appareils[array_rand($this->appareils)],
-                'pays_code' => $pays['code'],
-                'pays_nom' => $pays['nom'],
-                'duree_session' => rand(5, 600),
-                'est_rebond' => (bool) rand(0, 1),
-                'est_nouvelle_session' => (bool) rand(0, 1),
-                'cree_le' => $dateVisite,
+                'utm_campaign' => $this->utmCampaigns[array_rand($this->utmCampaigns)],
+                'browser' => $this->browsers[array_rand($this->browsers)],
+                'browser_version' => (string) rand(90, 130),
+                'operating_system' => $this->operatingSystems[array_rand($this->operatingSystems)],
+                'device' => $this->devices[array_rand($this->devices)],
+                'country_code' => $country['code'],
+                'country_name' => $country['name'],
+                'session_duration' => rand(5, 600),
+                'is_bounce' => (bool) rand(0, 1),
+                'is_new_session' => (bool) rand(0, 1),
+                'created_at' => $visitedAt,
             ];
         }
 
-        // Insert in chunks of 50 for performance
-        foreach (array_chunk($visites, 50) as $chunk) {
-            DB::table('visites')->insert($chunk);
+        foreach (array_chunk($visits, 50) as $chunk) {
+            DB::table('visits')->insert($chunk);
         }
     }
 }

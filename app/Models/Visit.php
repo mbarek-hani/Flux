@@ -54,7 +54,7 @@ class Visit extends Model
 
     public function metadata(): HasMany
     {
-        return $this->hasMany(PluginMetadata::class, 'visit_id');
+        return $this->hasMany(VisitMetadata::class, 'visit_id');
     }
 
     public function scopePeriod(Builder $query, string $start, string $end): Builder

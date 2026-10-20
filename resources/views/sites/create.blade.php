@@ -9,11 +9,11 @@
                     @csrf
 
                     <div class="p-form-group">
-                        <x-input name="nom" label="Nom du site" placeholder="Mon blog" :required="true"
-                            value="{{ old('nom') }}" />
+                        <x-input name="name" label="Nom du site" placeholder="Mon blog" :required="true"
+                            value="{{ old('name') }}" />
 
-                        <x-input name="domaine" label="Domaine" placeholder="monsite.fr" :required="true"
-                            aide="Sans http:// ni www. Exemple : monsite.fr" value="{{ old('domaine') }}" />
+                        <x-input name="domain" label="Domaine" placeholder="monsite.fr" :required="true"
+                            aide="Sans http:// ni www. Exemple : monsite.fr" value="{{ old('domain') }}" />
                     </div>
 
                     <div class="p-card-footer">

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\Site;
@@ -11,71 +13,54 @@ use Illuminate\Support\Facades\Validator;
 
 class TrackingController extends Controller
 {
-    public function __construct(private TrackingService $trackingService) {}
+    public function __construct(private readonly TrackingService $tracking) {}
 
     public function track(Request $request): Response|JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'token' => ['required', 'string', 'size:64'],
-            'type' => ['nullable', 'string', 'in:pageview,duree,evenement'],
+            'type' => ['nullable', 'string', 'in:pageview,duration,event'],
             'url' => ['nullable', 'string', 'max:2048'],
-            'chemin' => ['nullable', 'string', 'max:1024'],
-            'titre' => ['nullable', 'string', 'max:255'],
-            'referent' => ['nullable', 'string', 'max:2048'],
-            'referent_domaine' => ['nullable', 'string', 'max:255'],
-            'appareil' => [
-                'nullable',
-                'string',
-                'in:ordinateur,mobile,tablette,inconnu',
-            ],
-            'largeur_ecran' => ['nullable', 'integer'],
+            'path' => ['nullable', 'string', 'max:1024'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'referrer' => ['nullable', 'string', 'max:2048'],
+            'referrer_domain' => ['nullable', 'string', 'max:255'],
+            'device' => ['nullable', 'string', 'in:desktop,mobile,tablet,unknown'],
+            'screen_width' => ['nullable', 'integer'],
             'utm_source' => ['nullable', 'string', 'max:100'],
             'utm_medium' => ['nullable', 'string', 'max:100'],
-            'utm_campagne' => ['nullable', 'string', 'max:100'],
-            'duree' => ['nullable', 'integer', 'min:0', 'max:86400'],
-            'nom' => ['nullable', 'string', 'max:255'],
-            'donnees' => ['nullable', 'array'],
-            'est_navigation' => ['nullable', 'boolean'],
+            'utm_campaign' => ['nullable', 'string', 'max:100'],
+            'duration' => ['nullable', 'integer', 'min:0', 'max:86400'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'data' => ['nullable', 'array'],
+            'is_navigation' => ['nullable', 'boolean'],
         ]);
 
         if ($validator->fails()) {
-            return $this->reponseVide();
+            return $this->emptyResponse();
         }
 
-        $donnees = $validator->validated();
+        $data = $validator->validated();
 
-        $site = Site::where('token_tracking', $donnees['token'])
-            ->where('actif', true)
+        $site = Site::query()
+            ->where('tracking_token', $data['token'])
+            ->where('is_active', true)
             ->first();
 
-        if (! $site) {
-            return $this->reponseVide();
+        if ($site === null) {
+            return $this->emptyResponse();
         }
 
-        $type = $donnees['type'] ?? 'pageview';
-
-        match ($type) {
-            'duree' => $this->trackingService->mettreAJourDuree(
-                $site,
-                $donnees,
-                $request,
-            ),
-            'evenement' => $this->trackingService->enregistrerEvenement(
-                $site,
-                $donnees,
-                $request,
-            ),
-            default => $this->trackingService->enregistrerVisite(
-                $site,
-                $donnees,
-                $request,
-            ),
+        match ($data['type'] ?? 'pageview') {
+            'duration' => $this->tracking->updateDuration($site, $data, $request),
+            'event' => $this->tracking->recordEvent($site, $data, $request),
+            default => $this->tracking->recordVisit($site, $data, $request),
         };
 
-        return $this->reponseVide();
+        return $this->emptyResponse();
     }
 
-    private function reponseVide(): Response
+    private function emptyResponse(): Response
     {
         return response()
             ->noContent(204)

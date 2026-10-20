@@ -8,160 +8,138 @@
         script?.getAttribute("data-endpoint") ||
         script?.src.replace("tracker.js", "api/track");
 
-    // Abandon si pas de token
     if (!token) {
-        console.warn("[Flux] data-token manquant sur le script.");
+        console.warn("[Flux] Missing data-token on the script tag.");
         return;
     }
 
     // ─── Respect Do Not Track ─────────────────────────────────────
     if (navigator.doNotTrack === "1" || window.doNotTrack === "1") {
-        console.warn("[Flux] stop tracking due to navigator.doNotTrack");
+        console.warn("[Flux] Tracking disabled because Do Not Track is enabled.");
         return;
     }
 
-    // ─── Ne pas tracker les bots ──────────────────────────────────
+    // ─── Ignore known bots ────────────────────────────────────────
     const botsPattern = /bot|crawl|spider|slurp|teoma|archive|track/i;
     if (botsPattern.test(navigator.userAgent)) {
         return;
     }
 
-    // ─── Ne pas tracker en localhost (dev) ────────────────────────
-    // const hote = window.location.hostname;
-    // if (hote === 'localhost' || hote === '127.0.0.1' || hote === '') {
-    //     return;
-    // }
-
-    // ─── Détection de l'appareil ──────────────────────────────────
-    function detecterAppareil() {
-        const ua = navigator.userAgent;
-        if (/tablet|ipad|playbook|silk/i.test(ua)) return "tablette";
+    // ─── Device detection ─────────────────────────────────────────
+    function detectDevice() {
+        const userAgent = navigator.userAgent;
+        if (/tablet|ipad|playbook|silk/i.test(userAgent)) return "tablet";
         if (
             /mobile|iphone|ipod|android|blackberry|mini|windows\sce|palm/i.test(
-                ua,
+                userAgent,
             )
         )
             return "mobile";
-        return "ordinateur";
+        return "desktop";
     }
 
-    // ─── Extraction du domaine référent ───────────────────────────
-    function extraireDomaineReferent(referentUrl) {
-        if (!referentUrl) return null;
+    // ─── Referrer domain extraction ───────────────────────────────
+    function extractReferrerDomain(referrerUrl) {
+        if (!referrerUrl) return null;
         try {
-            return new URL(referentUrl).hostname;
+            return new URL(referrerUrl).hostname;
         } catch {
             return null;
         }
     }
 
-    // ─── Extraction des paramètres UTM ────────────────────────────
-    function extraireUtm() {
+    // ─── UTM parameter extraction ─────────────────────────────────
+    function extractUtm() {
         const params = new URLSearchParams(window.location.search);
         return {
             utm_source: params.get("utm_source") || null,
             utm_medium: params.get("utm_medium") || null,
-            utm_campagne: params.get("utm_campaign") || null,
+            utm_campaign: params.get("utm_campaign") || null,
         };
     }
 
-    // ─── Durée de session ─────────────────────────────────────────
-    let tempsDebut = Date.now();
+    // ─── Session duration ─────────────────────────────────────────
+    const startedAt = Date.now();
 
-    // ─── Envoi des données ────────────────────────────────────────
-    function envoyer(donnees) {
-        // Utilise sendBeacon si disponible (plus fiable au unload)
-        const payload = JSON.stringify(donnees);
-
-        console.info("[Flux]: envoyons les données");
-        console.log(payload);
+    // ─── Payload delivery ─────────────────────────────────────────
+    function send(payload) {
+        const body = JSON.stringify(payload);
 
         try {
             if (navigator.sendBeacon) {
-                const blob = new Blob([payload], { type: "application/json" });
+                const blob = new Blob([body], { type: "application/json" });
                 navigator.sendBeacon(endpoint, blob);
             } else {
-                // Fallback fetch synchrone
                 fetch(endpoint, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: payload,
+                    body,
                     keepalive: true,
                 });
             }
-        } catch (err) {
-            console.error(
-                `[Flux] there was an unexpected error sending ${payload}`,
-                err,
-            );
+        } catch (error) {
+            console.error("[Flux] Unable to send tracking payload.", error);
         }
     }
 
-    // ─── Collecte principale ──────────────────────────────────────
-    function tracker(estNavigation) {
-        const utm = extraireUtm();
+    // ─── Main pageview collection ─────────────────────────────────
+    function trackPageview(isNavigation) {
+        const utm = extractUtm();
 
-        const donnees = {
-            token: token,
+        send({
+            token,
             url: window.location.href,
-            chemin: window.location.pathname,
-            titre: document.title || null,
-            referent: estNavigation ? null : document.referrer || null,
-            referent_domaine: estNavigation
+            path: window.location.pathname,
+            title: document.title || null,
+            referrer: isNavigation ? null : document.referrer || null,
+            referrer_domain: isNavigation
                 ? null
-                : extraireDomaineReferent(document.referrer),
-            appareil: detecterAppareil(),
-            largeur_ecran: window.innerWidth,
-            est_navigation: estNavigation || false,
+                : extractReferrerDomain(document.referrer),
+            device: detectDevice(),
+            screen_width: window.innerWidth,
+            is_navigation: isNavigation || false,
             ...utm,
-        };
-
-        envoyer(donnees);
-    }
-
-    // ─── Envoi de la durée au départ de la page ───────────────────
-    function envoyerDuree() {
-        const duree = Math.round((Date.now() - tempsDebut) / 1000);
-
-        // On envoie la durée seulement si > 2 secondes (évite les bounces accidentels)
-        if (duree < 2) return;
-
-        envoyer({
-            token: token,
-            type: "duree",
-            chemin: window.location.pathname,
-            duree: duree,
         });
     }
 
-    // ─── Initialisation ───────────────────────────────────────────
+    // ─── Duration reporting ───────────────────────────────────────
+    function sendDuration() {
+        const duration = Math.round((Date.now() - startedAt) / 1000);
 
-    // Tracker la page actuelle
-    tracker(false);
+        if (duration < 2) return;
 
-    // Envoyer la durée quand l'utilisateur quitte
+        send({
+            token,
+            type: "duration",
+            path: window.location.pathname,
+            duration,
+        });
+    }
+
+    // ─── Initialization ───────────────────────────────────────────
+    trackPageview(false);
+
     window.addEventListener("visibilitychange", function () {
         if (document.visibilityState === "hidden") {
-            envoyerDuree();
+            sendDuration();
         }
     });
 
-    window.addEventListener("beforeunload", envoyerDuree);
+    window.addEventListener("beforeunload", sendDuration);
 
-    // API publique pour tracker des événements personnalisés
-    // Utilisation : Flux.event('clic_bouton', { bouton: 'inscription' })
+    // Public API for custom events: Flux.event('signup', { plan: 'pro' })
     window.Flux = {
-        event: function (nom, donnees) {
-            envoyer({
-                token: token,
-                type: "evenement",
-                nom: nom,
-                chemin: window.location.pathname,
-                donnees: donnees || {},
+        event: function (name, data) {
+            send({
+                token,
+                type: "event",
+                name,
+                path: window.location.pathname,
+                data: data || {},
             });
         },
     };
 
-    // ─── Plugin injection point ───────────────────────────────
+    // ─── Plugin injection point ───────────────────────────────────
     /* PLUGIN_INJECTION */
 })();

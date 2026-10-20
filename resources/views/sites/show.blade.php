@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="titre">
-        Site : {{ $site->nom }}
+        Site : {{ $site->name }}
     </x-slot>
     <div class="p-page">
         <div class="p-container p-container--md p-stack">
@@ -16,12 +16,12 @@
                 <div class="p-grid p-grid--2 p-grid--gap-md" style="font-size: 0.875rem;">
                     <div>
                         <span class="p-info-label">Domaine</span>
-                        <p class="p-info-value">{{ $site->domaine }}</p>
+                        <p class="p-info-value">{{ $site->domain }}</p>
                     </div>
                     <div>
                         <span class="p-info-label">Statut</span>
-                        <p class="p-info-value {{ $site->actif ? 'p-info-value--active' : 'p-info-value--inactive' }}">
-                            {{ $site->actif ? 'Actif' : 'Inactif' }}
+                        <p class="p-info-value {{ $site->is_active ? 'p-info-value--active' : 'p-info-value--inactive' }}">
+                            {{ $site->is_active ? 'Actif' : 'Inactif' }}
                         </p>
                     </div>
                     <div>
@@ -30,7 +30,7 @@
                     </div>
                     <div>
                         <span class="p-info-label">Token</span>
-                        <p class="p-info-value--mono">{{ $site->token_tracking }}</p>
+                        <p class="p-info-value--mono">{{ $site->tracking_token }}</p>
                     </div>
                 </div>
             </x-card>
@@ -44,7 +44,7 @@
 
                 <div x-data="{ copie: false }" class="p-copy-wrapper">
                     <pre
-                        class="p-code-block"><code x-ref="code">{{ $site->getScriptTracking() }}</code></pre>
+                        class="p-code-block"><code x-ref="code">{{ $site->getTrackingScript() }}</code></pre>
 
                     <button @click="
                             navigator.clipboard.writeText($refs.code.textContent);

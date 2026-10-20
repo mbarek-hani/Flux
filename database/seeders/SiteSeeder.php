@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use App\Models\Site;
@@ -11,30 +13,30 @@ class SiteSeeder extends Seeder
     public function run(): void
     {
         Site::create([
-            'nom' => 'Mon Blog',
-            'domaine' => 'monblog.com',
-            'token_tracking' => Str::random(64),
-            'actif' => true,
-            'ignorer_bots' => true,
-            'ignorer_dnt' => false,
+            'name' => 'My Blog',
+            'domain' => 'myblog.com',
+            'tracking_token' => Str::random(64),
+            'is_active' => true,
+            'ignore_bots' => true,
+            'ignore_dnt' => false,
         ]);
 
         Site::create([
-            'nom' => 'Ma Boutique',
-            'domaine' => 'maboutique.com',
-            'token_tracking' => Str::random(64),
-            'actif' => true,
-            'ignorer_bots' => true,
-            'ignorer_dnt' => false,
+            'name' => 'My Shop',
+            'domain' => 'myshop.com',
+            'tracking_token' => Str::random(64),
+            'is_active' => true,
+            'ignore_bots' => true,
+            'ignore_dnt' => false,
         ]);
 
         Site::create([
-            'nom' => 'Portfolio',
-            'domaine' => 'portfolio.dev',
-            'token_tracking' => Str::random(64),
-            'actif' => false,
-            'ignorer_bots' => false,
-            'ignorer_dnt' => true,
+            'name' => 'Portfolio',
+            'domain' => 'portfolio.dev',
+            'tracking_token' => Str::random(64),
+            'is_active' => false,
+            'ignore_bots' => false,
+            'ignore_dnt' => true,
         ]);
     }
 }

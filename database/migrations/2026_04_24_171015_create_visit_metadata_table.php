@@ -10,7 +10,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('plugin_metadata', function (Blueprint $table) {
+        Schema::create('visit_metadata', function (Blueprint $table) {
             $table->id();
             $table->foreignId('visit_id')->constrained('visits')->cascadeOnDelete();
             $table->string('plugin', 100);
@@ -25,6 +25,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('plugin_metadata');
+        Schema::dropIfExists('visit_metadata');
     }
 };

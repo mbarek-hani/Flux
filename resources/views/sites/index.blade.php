@@ -25,24 +25,24 @@
                         <x-card class="u-h-full u-flex-col">
                             <div class="u-flex-1">
                                 <div class="p-row p-mb-1">
-                                    <div class="p-status-dot {{ $site->actif ? 'p-status-dot--active' : 'p-status-dot--inactive' }}"></div>
-                                    <h3 class="p-section__title u-flex-1">{{ $site->nom }}</h3>
+                                    <div class="p-status-dot {{ $site->is_active ? 'p-status-dot--active' : 'p-status-dot--inactive' }}"></div>
+                                    <h3 class="p-section__title u-flex-1">{{ $site->name }}</h3>
                                 </div>
-                                <p class="p-text u-text-gray-600 u-break-all">{{ $site->domaine }}</p>
+                                <p class="p-text u-text-gray-600 u-break-all">{{ $site->domain }}</p>
                                 <div class="p-mt-2">
                                     <p class="p-text--xs u-text-gray-400">
                                         <x-custom-icon name="chart-bar" class="c-icon--xs" />
-                                        {{ $site->visites_count ?? 0 }} visites enregistrées
+                                        {{ $site->visits_count ?? 0 }} visites enregistrées
                                     </p>
                                 </div>
                             </div>
                             
                             <div class="p-card-footer u-justify-between">
                                 <div class="p-actions">
-                                    <form method="POST" action="{{ route('sites.toggle-actif', $site) }}">
+                                    <form method="POST" action="{{ route('sites.toggle-active', $site) }}">
                                         @csrf
-                                        <x-button size="sm" type="submit" variant="{{ $site->actif ? 'default' : 'primary' }}" title="{{ $site->actif ? 'Désactiver' : 'Activer' }}">
-                                            <x-custom-icon name="{{ $site->actif ? 'stop' : 'play' }}" class="c-icon--xs" />
+                                        <x-button size="sm" type="submit" variant="{{ $site->is_active ? 'default' : 'primary' }}" title="{{ $site->is_active ? 'Désactiver' : 'Activer' }}">
+                                            <x-custom-icon name="{{ $site->is_active ? 'stop' : 'play' }}" class="c-icon--xs" />
                                         </x-button>
                                     </form>
                                     <x-button href="{{ route('sites.show', $site) }}" size="sm" title="Détails & Script">

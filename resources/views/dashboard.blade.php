@@ -7,7 +7,7 @@
         <div class="p-container p-container--lg">
             <h2 class="p-page__title">Tableau de bord</h2>
 
-            @if($aucunSite)
+            @if($noSite)
                 <x-card>
                     <div class="p-empty">
                         <x-custom-icon name="globe" class="p-empty__icon" />
@@ -29,25 +29,25 @@
                     <div class="p-dash__controls">
                         <select x-model="siteId" @change="chargerStats()" class="p-dash__select">
                             @foreach($sites as $site)
-                                <option value="{{ $site->id }}" {{ $site->id === $siteCourant->id ? 'selected' : '' }}>
-                                    {{ $site->nom }} — {{ $site->domaine }}
+                                <option value="{{ $site->id }}" {{ $site->id === $currentSite->id ? 'selected' : '' }}>
+                                    {{ $site->name }} — {{ $site->domain }}
                                 </option>
                             @endforeach
                         </select>
 
                         {{-- Période Desktop --}}
                         <div class="p-dash__periods">
-                            <template x-for="p in periodes" :key="p.valeur">
-                                <button @click="periode = p.valeur; chargerStats()" :class="periode === p.valeur
+                            <template x-for="p in periodes" :key="p.value">
+                                <button @click="period = p.value; chargerStats()" :class="period === p.value
                                             ? 'p-dash__period-btn--active'
                                             : ''" class="p-dash__period-btn" x-text="p.label"></button>
                             </template>
                         </div>
 
                         {{-- Période Mobile --}}
-                        <select x-model="periode" @change="chargerStats()" class="p-dash__period-mobile">
-                            <template x-for="p in periodes" :key="p.valeur">
-                                <option :value="p.valeur" x-text="p.label"></option>
+                        <select x-model="period" @change="chargerStats()" class="p-dash__period-mobile">
+                            <template x-for="p in periodes" :key="p.value">
+                                <option :value="p.value" x-text="p.label"></option>
                             </template>
                         </select>
                     </div>
@@ -71,12 +71,12 @@
                             </button>
 
                             {{-- Onglets plugins --}}
-                            @foreach($onglets as $onglet)
-                                <button @click="ongletActif = '{{ $onglet['id'] }}'" :class="ongletActif === '{{ $onglet['id'] }}'
+                            @foreach($tabs as $tab)
+                                <button @click="ongletActif = '{{ $tab['id'] }}'" :class="ongletActif === '{{ $tab['id'] }}'
                                                     ? 'p-dash__tab--active'
                                                     : ''" class="p-dash__tab">
-                                    <x-custom-icon :name="$onglet['icone']" class="c-icon--sm" />
-                                    {{ $onglet['label'] }}
+                                    <x-custom-icon :name="$tab['icon']" class="c-icon--sm" />
+                                    {{ $tab['label'] }}
                                 </button>
                             @endforeach
                         </nav>
@@ -100,22 +100,22 @@
                             <div class="p-grid p-grid--2 p-grid--4 p-mb-3">
                                 <x-stats-card titre="Visiteurs uniques" icon="users">
                                     <x-slot:valeur>
-                                        <span x-text="stats?.resume?.visiteurs_uniques ?? 0"></span>
+                                        <span x-text="stats?.summary?.unique_visitors ?? 0"></span>
                                     </x-slot:valeur>
                                 </x-stats-card>
                                 <x-stats-card titre="Pages vues" icon="eye">
                                     <x-slot:valeur>
-                                        <span x-text="stats?.resume?.pages_vues ?? 0"></span>
+                                        <span x-text="stats?.summary?.page_views ?? 0"></span>
                                     </x-slot:valeur>
                                 </x-stats-card>
                                 <x-stats-card titre="Taux de rebond" icon="arrow-trending-down">
                                     <x-slot:valeur>
-                                        <span x-text="(stats?.resume?.taux_rebond ?? 0) + '%'"></span>
+                                        <span x-text="(stats?.summary?.bounce_rate ?? 0) + '%'"></span>
                                     </x-slot:valeur>
                                 </x-stats-card>
                                 <x-stats-card titre="Durée moyenne" icon="clock">
                                     <x-slot:valeur>
-                                        <span x-text="formaterDuree(stats?.resume?.duree_moyenne ?? 0)"></span>
+                                        <span x-text="formaterDuree(stats?.summary?.average_duration ?? 0)"></span>
                                     </x-slot:valeur>
                                 </x-stats-card>
                             </div>
@@ -138,10 +138,10 @@
                                         </thead>
                                         <tbody>
                                             <template x-for="page in (stats?.top_pages ?? []).slice(0, 8)"
-                                                :key="page.chemin">
+                                                :key="page.path">
                                                 <tr>
-                                                    <td class="p-dash__table-cell--truncate" x-text="page.chemin"></td>
-                                                    <td class="p-dash__table-cell--right" x-text="page.vues"></td>
+                                                    <td class="p-dash__table-cell--truncate" x-text="page.path"></td>
+                                                    <td class="p-dash__table-cell--right" x-text="page.views"></td>
                                                 </tr>
                                             </template>
                                             <template x-if="!stats?.top_pages?.length">
@@ -162,21 +162,21 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <template x-for="ref in (stats?.top_referents ?? []).slice(0, 8)"
-                                                :key="ref.referent_domaine">
+                                            <template x-for="ref in (stats?.top_referrers ?? []).slice(0, 8)"
+                                                :key="ref.referrer_domain">
                                                 <tr>
                                                     <td>
                                                         <div class="p-dash__list-name">
-                                                            <img :src="'https://www.google.com/s2/favicons?domain=' + ref.referent_domaine + '&sz=16'"
+                                                            <img :src="'https://www.google.com/s2/favicons?domain=' + ref.referrer_domain + '&sz=16'"
                                                                 class="p-dash__favicon">
                                                             <span class="p-dash__table-cell--truncate"
-                                                                x-text="ref.referent_domaine"></span>
+                                                                x-text="ref.referrer_domain"></span>
                                                         </div>
                                                     </td>
-                                                    <td class="p-dash__table-cell--right" x-text="ref.visiteurs"></td>
+                                                    <td class="p-dash__table-cell--right" x-text="ref.visitors"></td>
                                                 </tr>
                                             </template>
-                                            <template x-if="!stats?.top_referents?.length">
+                                            <template x-if="!stats?.top_referrers?.length">
                                                 <tr>
                                                     <td colspan="2" class="p-dash__table-cell--center-lg">Aucun référent
                                                     </td>
@@ -196,10 +196,10 @@
                                             <canvas x-ref="graphiqueAppareils"></canvas>
                                         </div>
                                         <div class="p-dash__devices-legend">
-                                            <template x-for="app in stats?.appareils ?? []" :key="app.appareil">
+                                            <template x-for="app in stats?.devices ?? []" :key="app.device">
                                                 <div class="p-dash__device-row">
-                                                    <span class="p-dash__device-name" x-text="app.appareil"></span>
-                                                    <span class="p-dash__device-count" x-text="app.visiteurs"></span>
+                                                    <span class="p-dash__device-name" x-text="app.device"></span>
+                                                    <span class="p-dash__device-count" x-text="app.visitors"></span>
                                                 </div>
                                             </template>
                                         </div>
@@ -219,24 +219,24 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <template x-for="nav in (stats?.top_navigateurs ?? []).slice(0, 5)"
-                                                        :key="nav.navigateur">
+                                                    <template x-for="nav in (stats?.top_browsers ?? []).slice(0, 5)"
+                                                        :key="nav.browser">
                                                         <tr>
                                                             <td>
                                                                 <div class="p-dash__list-name">
-                                                                    <template x-if="getBrowserIcon(nav.navigateur)">
-                                                                        <img :src="getBrowserIcon(nav.navigateur)"
+                                                                    <template x-if="getBrowserIcon(nav.browser)">
+                                                                        <img :src="getBrowserIcon(nav.browser)"
                                                                             class="p-dash__favicon">
                                                                     </template>
                                                                     <span class="p-dash__table-cell--truncate"
-                                                                        x-text="nav.navigateur"></span>
+                                                                        x-text="nav.browser"></span>
                                                                 </div>
                                                             </td>
-                                                            <td class="p-dash__table-cell--right" x-text="nav.visiteurs">
+                                                            <td class="p-dash__table-cell--right" x-text="nav.visitors">
                                                             </td>
                                                         </tr>
                                                     </template>
-                                                    <template x-if="!stats?.top_navigateurs?.length">
+                                                    <template x-if="!stats?.top_browsers?.length">
                                                         <tr>
                                                             <td colspan="2" class="p-dash__table-cell--center-lg">Aucune
                                                                 donnée</td>
@@ -254,24 +254,24 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <template x-for="sys in (stats?.top_systemes ?? []).slice(0, 5)"
-                                                        :key="sys.systeme_exploitation">
+                                                    <template x-for="sys in (stats?.top_operating_systems ?? []).slice(0, 5)"
+                                                        :key="sys.operating_system">
                                                         <tr>
                                                             <td>
                                                                 <div class="p-dash__list-name">
-                                                                    <template x-if="getOsIcon(sys.systeme_exploitation)">
-                                                                        <img :src="getOsIcon(sys.systeme_exploitation)"
+                                                                    <template x-if="getOsIcon(sys.operating_system)">
+                                                                        <img :src="getOsIcon(sys.operating_system)"
                                                                             class="p-dash__favicon">
                                                                     </template>
                                                                     <span class="p-dash__table-cell--truncate"
-                                                                        x-text="sys.systeme_exploitation"></span>
+                                                                        x-text="sys.operating_system"></span>
                                                                 </div>
                                                             </td>
-                                                            <td class="p-dash__table-cell--right" x-text="sys.visiteurs">
+                                                            <td class="p-dash__table-cell--right" x-text="sys.visitors">
                                                             </td>
                                                         </tr>
                                                     </template>
-                                                    <template x-if="!stats?.top_systemes?.length">
+                                                    <template x-if="!stats?.top_operating_systems?.length">
                                                         <tr>
                                                             <td colspan="2" class="p-dash__table-cell--center-lg">Aucune
                                                                 donnée</td>
@@ -323,7 +323,7 @@
                                                                     x-text="utm.utm_source"></span>
                                                             </div>
                                                         </td>
-                                                        <td class="p-dash__table-cell--right" x-text="utm.visiteurs"></td>
+                                                        <td class="p-dash__table-cell--right" x-text="utm.visitors"></td>
                                                     </tr>
                                                 </template>
                                                 <template x-if="!stats?.top_utm_sources?.length">
@@ -347,7 +347,7 @@
                                                     <tr>
                                                         <td class="p-dash__table-cell--truncate" x-text="utm.utm_medium">
                                                         </td>
-                                                        <td class="p-dash__table-cell--right" x-text="utm.visiteurs"></td>
+                                                        <td class="p-dash__table-cell--right" x-text="utm.visitors"></td>
                                                     </tr>
                                                 </template>
                                                 <template x-if="!stats?.top_utm_mediums?.length">
@@ -367,11 +367,11 @@
                                             </thead>
                                             <tbody>
                                                 <template x-for="utm in (stats?.top_utm_campaigns ?? []).slice(0, 5)"
-                                                    :key="utm.utm_campagne">
+                                                    :key="utm.utm_campaign">
                                                     <tr>
-                                                        <td class="p-dash__table-cell--truncate" x-text="utm.utm_campagne">
+                                                        <td class="p-dash__table-cell--truncate" x-text="utm.utm_campaign">
                                                         </td>
-                                                        <td class="p-dash__table-cell--right" x-text="utm.visiteurs"></td>
+                                                        <td class="p-dash__table-cell--right" x-text="utm.visitors"></td>
                                                     </tr>
                                                 </template>
                                                 <template x-if="!stats?.top_utm_campaigns?.length">
@@ -405,7 +405,7 @@
                                 </x-stats-card>
                                 <x-stats-card titre="Types différents" icon="tag">
                                     <x-slot:valeur>
-                                        <span x-text="stats?.evenements_par_nom?.length ?? 0"></span>
+                                        <span x-text="stats?.events_by_name?.length ?? 0"></span>
                                     </x-slot:valeur>
                                 </x-stats-card>
                                 <x-stats-card titre="Sessions actives" icon="users">
@@ -433,14 +433,14 @@
                                             <table class="p-dash__table">
                                                 <tbody>
                                                     <template
-                                                        x-for="(evt, index) in (stats?.evenements_par_nom ?? []).slice(0, 5)"
-                                                        :key="evt.nom">
+                                                        x-for="(evt, index) in (stats?.events_by_name ?? []).slice(0, 5)"
+                                                        :key="evt.name">
                                                         <tr class="p-dash__evt-row">
                                                             <td class="p-row">
                                                                 <div class="p-dash__evt-dot"
                                                                     :style="'background-color: ' + couleursChart[index]">
                                                                 </div>
-                                                                <span class="p-dash__evt-name" x-text="evt.nom"></span>
+                                                                <span class="p-dash__evt-name" x-text="evt.name"></span>
                                                             </td>
                                                             <td class="p-dash__table-cell--right" x-text="evt.total"></td>
                                                             <td class="p-dash__table-cell--muted"
@@ -464,14 +464,14 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <template x-for="page in (stats?.evenements_par_page ?? []).slice(0, 6)"
-                                                :key="page.chemin">
+                                            <template x-for="page in (stats?.events_by_page ?? []).slice(0, 6)"
+                                                :key="page.path">
                                                 <tr>
-                                                    <td class="p-dash__table-cell--truncate" x-text="page.chemin"></td>
+                                                    <td class="p-dash__table-cell--truncate" x-text="page.path"></td>
                                                     <td class="p-dash__table-cell--mono" x-text="page.total"></td>
                                                 </tr>
                                             </template>
-                                            <template x-if="!stats?.evenements_par_page?.length">
+                                            <template x-if="!stats?.events_by_page?.length">
                                                 <tr>
                                                     <td colspan="2" class="p-dash__table-cell--center-xl">Aucune donnée
                                                         contextuelle</td>
@@ -492,16 +492,16 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <template x-for="evt in (stats?.derniers_evenements ?? []).slice(0, 8)"
+                                            <template x-for="evt in (stats?.latest_events ?? []).slice(0, 8)"
                                                 :key="evt.id">
                                                 <tr>
                                                     <td>
-                                                        <span class="p-dash__evt-badge" x-text="evt.nom"></span>
+                                                        <span class="p-dash__evt-badge" x-text="evt.name"></span>
                                                     </td>
-                                                    <td class="p-dash__table-cell--truncate" x-text="evt.chemin"
+                                                    <td class="p-dash__table-cell--truncate" x-text="evt.path"
                                                         style="max-width: 250px; color: var(--gray-500);"></td>
                                                     <td class="p-dash__table-cell--muted"
-                                                        x-text="formaterDate(evt.cree_le)"></td>
+                                                        x-text="formaterDate(evt.created_at)"></td>
                                                 </tr>
                                             </template>
                                         </tbody>
@@ -511,9 +511,9 @@
                         </div>
 
                         {{-- ══════ ONGLETS PLUGINS ══════ --}}
-                        @foreach($onglets as $onglet)
-                            <div x-show="ongletActif === '{{ $onglet['id'] }}'" x-cloak>
-                                @hook('tab.' . $onglet['id'])
+                        @foreach($tabs as $tab)
+                            <div x-show="ongletActif === '{{ $tab['id'] }}'" x-cloak>
+                                @hook('tab.' . $tab['id'])
                             </div>
                         @endforeach
 
@@ -528,8 +528,8 @@
         <script>
             function dashboard() {
                 return {
-                    siteId: {{ $siteCourant->id ?? 0 }},
-                    periode: '7j',
+                    siteId: {{ $currentSite->id ?? 0 }},
+                    period: '7d',
                     ongletActif: 'apercu',
                     chargement: true,
                     erreur: null,
@@ -542,18 +542,18 @@
                     couleursChart: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'], // Indigo, Violet, Pink, Amber, Emerald
 
                     periodes: [
-                        { valeur: 'aujourdhui', label: "Aujourd'hui" },
-                        { valeur: '7j', label: '7 jours' },
-                        { valeur: '30j', label: '30 jours' },
-                        { valeur: 'ce_mois', label: 'Ce mois' },
-                        { valeur: 'cette_annee', label: 'Année' },
+                        { value: 'today', label: "Aujourd'hui" },
+                        { value: '7d', label: '7 jours' },
+                        { value: '30d', label: '30 jours' },
+                        { value: 'this_month', label: 'Ce mois' },
+                        { value: 'this_year', label: 'Année' },
                     ],
 
                     async chargerStats() {
                         this.chargement = true;
                         this.erreur = null;
                         try {
-                            const p = new URLSearchParams({ site_id: this.siteId, periode: this.periode });
+                            const p = new URLSearchParams({ site_id: this.siteId, period: this.period });
                             const r = await fetch('/dashboard/stats?' + p, {
                                 headers: {
                                     'Accept': 'application/json',
@@ -588,14 +588,14 @@
                                 datasets: [
                                     {
                                         label: 'Visiteurs',
-                                        data: d.map(e => e.visiteurs),
+                                        data: d.map(e => e.visitors),
                                         borderColor: '#f71',
                                         backgroundColor: 'rgba(55,65,81,0.05)',
                                         fill: true, tension: 0.3, borderWidth: 2, pointRadius: 2,
                                     },
                                     {
                                         label: 'Pages vues',
-                                        data: d.map(e => e.pages_vues),
+                                        data: d.map(e => e.page_views),
                                         borderColor: '#93f',
                                         backgroundColor: 'rgba(156,163,175,0.05)',
                                         fill: true, tension: 0.3, borderWidth: 2, pointRadius: 2,
@@ -615,13 +615,13 @@
                         const c = this.$refs.graphiqueAppareils;
                         if (!c) return;
                         if (this._chartApp) this._chartApp.destroy();
-                        const d = this.stats?.appareils ?? [];
+                        const d = this.stats?.devices ?? [];
                         if (!d.length) return;
                         this._chartApp = new Chart(c, {
                             type: 'doughnut',
                             data: {
-                                labels: d.map(a => a.appareil),
-                                datasets: [{ data: d.map(a => a.visiteurs), backgroundColor: ['#fab', '#afb', '#abf', '#666'], borderWidth: 0 }],
+                                labels: d.map(a => a.device),
+                                datasets: [{ data: d.map(a => a.visitors), backgroundColor: ['#fab', '#afb', '#abf', '#666'], borderWidth: 0 }],
                             },
                             options: { responsive: true, maintainAspectRatio: true, cutout: '60%', plugins: { legend: { display: false } } },
                         });
@@ -632,10 +632,10 @@
                         if (!c) return;
 
                         const values = {};
-                        for (const p of (this.stats?.top_pays ?? [])) {
-                            const code = (p.pays_code || '').toUpperCase();
+                        for (const p of (this.stats?.top_countries ?? [])) {
+                            const code = (p.country_code || '').toUpperCase();
                             if (code) {
-                                values[code] = p.visiteurs;
+                                values[code] = p.visitors;
                             }
                         }
 
@@ -738,7 +738,7 @@
                         const c = this.$refs.graphiqueEvenements;
                         if (!c) return;
                         if (this._chartEvt) this._chartEvt.destroy();
-                        const d = this.stats?.evenements_par_jour ?? [];
+                        const d = this.stats?.events_by_day ?? [];
 
                         this._chartEvt = new Chart(c, {
                             type: 'line', // Changé de 'bar' à 'line' pour mieux voir la tendance
@@ -772,13 +772,13 @@
                         if (!c) return;
                         if (this._chartEvtRepart) this._chartEvtRepart.destroy();
 
-                        const data = this.stats?.evenements_par_nom ?? [];
+                        const data = this.stats?.events_by_name ?? [];
                         if (!data.length) return;
 
                         this._chartEvtRepart = new Chart(c, {
                             type: 'doughnut',
                             data: {
-                                labels: data.map(e => e.nom),
+                                labels: data.map(e => e.name),
                                 datasets: [{
                                     data: data.map(e => e.total),
                                     backgroundColor: this.couleursChart,
@@ -796,11 +796,11 @@
                     },
 
                     totalEvenements() {
-                        return (this.stats?.evenements_par_nom ?? []).reduce((s, e) => s + e.total, 0);
+                        return (this.stats?.events_by_name ?? []).reduce((s, e) => s + e.total, 0);
                     },
 
                     totalSessionsEvenements() {
-                        return (this.stats?.evenements_par_nom ?? []).reduce((s, e) => s + (e.sessions || 0), 0);
+                        return (this.stats?.events_by_name ?? []).reduce((s, e) => s + (e.sessions || 0), 0);
                     },
 
                     // Nouvelle métrique

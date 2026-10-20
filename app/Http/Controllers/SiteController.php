@@ -1,33 +1,37 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\Site;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class SiteController extends Controller
 {
-    public function index()
+    public function index(): View
     {
-        $sites = Site::withCount('visites')->orderBy('nom')->get();
+        $sites = Site::query()->withCount('visits')->orderBy('name')->get();
 
         return view('sites.index', compact('sites'));
     }
 
-    public function create()
+    public function create(): View
     {
         return view('sites.create');
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'nom' => ['required', 'string', 'max:255'],
-            'domaine' => [
+            'name' => ['required', 'string', 'max:255'],
+            'domain' => [
                 'required',
                 'string',
                 'max:255',
-                'unique:sites,domaine',
+                'unique:sites,domain',
             ],
         ]);
 
@@ -35,29 +39,29 @@ class SiteController extends Controller
 
         return redirect()
             ->route('sites.index')
-            ->with('succes', 'Site ajouté avec succès.');
+            ->with('success', 'Site ajouté avec succès.');
     }
 
-    public function show(Site $site)
+    public function show(Site $site): View
     {
         return view('sites.show', compact('site'));
     }
 
-    public function toggleActif(Site $site)
+    public function toggleActive(Site $site): RedirectResponse
     {
-        $site->update(['actif' => ! $site->actif]);
+        $site->update(['is_active' => ! $site->is_active]);
 
         return redirect()
             ->route('sites.index')
-            ->with('succes', 'Statut du site modifié avec succès.');
+            ->with('success', 'Statut du site modifié avec succès.');
     }
 
-    public function destroy(Site $site)
+    public function destroy(Site $site): RedirectResponse
     {
         $site->delete();
 
         return redirect()
             ->route('sites.index')
-            ->with('succes', 'Site supprimé.');
+            ->with('success', 'Site supprimé.');
     }
 }

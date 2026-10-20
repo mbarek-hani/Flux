@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
-use App\Core\Plugin\PluginManager;
+use App\Plugins\PluginManager;
 use Illuminate\Http\Response;
 
 class TrackerJsController extends Controller
@@ -11,7 +13,7 @@ class TrackerJsController extends Controller
     {
         $coreJs = file_get_contents(resource_path('js/tracker-core.js'));
 
-        $pluginJs = $manager->getTrackerJavaScript();
+        $pluginJs = $manager->trackerScript();
 
         $js = str_replace('/* PLUGIN_INJECTION */', $pluginJs, $coreJs);
 

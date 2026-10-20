@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Core\Plugin\AbstractPlugin;
-use App\Core\Plugin\PluginManager;
-use App\Events\EvenementEnregistre;
-use App\Events\PluginActive;
-use App\Events\PluginDesactive;
-use App\Events\VisiteEnregistree;
+use App\Events\EventRecorded;
+use App\Events\PluginDisabled;
+use App\Events\PluginEnabled;
+use App\Events\VisitRecorded;
 use App\Models\Site;
-use App\Models\User;
+use App\Plugins\AbstractPlugin;
+use App\Plugins\PluginManager;
 use App\Services\TrackingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -29,271 +28,277 @@ class TrackingPipelineTest extends TestCase
     {
         parent::setUp();
 
-        $user = User::factory()->create();
         $this->site = Site::create([
-            'user_id' => $user->id,
-            'nom' => 'Test Site',
-            'domaine' => 'example.com',
-            'token_tracking' => str_repeat('a', 64),
-            'actif' => true,
+            'name' => 'Test Site',
+            'domain' => 'example.com',
+            'tracking_token' => str_repeat('a', 64),
+            'is_active' => true,
         ]);
     }
 
     public function test_plugin_can_enrich_tracking_data(): void
     {
-        $plugin = new class extends AbstractPlugin {
-            public function getIdentifiant(): string { return 'enricher-plugin'; }
-            public function getNom(): string { return 'Enricher Plugin'; }
-            public function getVersion(): string { return '1.0.0'; }
-
-            public function enrichirTracking(array $donnees, $request): ?array
+        $plugin = new class extends AbstractPlugin
+        {
+            public function slug(): string
             {
-                $donnees['titre'] = 'Enriched Title: '.$donnees['titre'];
-                $donnees['utm_source'] = 'plugin-source';
-                return $donnees;
+                return 'enricher-plugin';
+            }
+
+            public function name(): string
+            {
+                return 'Enricher Plugin';
+            }
+
+            public function version(): string
+            {
+                return '1.0.0';
+            }
+
+            public function filterVisit(array $data, Request $request): ?array
+            {
+                $data['title'] = 'Enriched Title: '.($data['title'] ?? '');
+                $data['utm_source'] = 'plugin-source';
+
+                return $data;
             }
         };
 
-        $manager = app(PluginManager::class);
-        $reflection = new \ReflectionClass($manager);
-        $actifsProp = $reflection->getProperty('pluginsActifs');
-        $actifsProp->setAccessible(true);
-        $actifsProp->setValue($manager, ['enricher-plugin' => $plugin]);
+        $this->injectActivePlugins(['enricher-plugin' => $plugin]);
 
-        $service = app(TrackingService::class);
-        $request = Request::create('/tracker.js', 'POST', [], [], [], [
-            'REMOTE_ADDR' => '192.168.1.1',
-            'HTTP_USER_AGENT' => 'Mozilla/5.0 (X11; Linux x86_64)',
-        ]);
-
-        $visite = $service->enregistrerVisite($this->site, [
+        $visit = app(TrackingService::class)->recordVisit($this->site, [
             'url' => 'https://example.com/test',
-            'chemin' => '/test',
-            'titre' => 'Original Title',
-        ], $request);
+            'path' => '/test',
+            'title' => 'Original Title',
+        ], $this->request());
 
-        $this->assertNotNull($visite);
-        $this->assertSame('Enriched Title: Original Title', $visite->titre);
-        $this->assertSame('plugin-source', $visite->utm_source);
+        $this->assertNotNull($visit);
+        $this->assertSame('Enriched Title: Original Title', $visit->title);
+        $this->assertSame('plugin-source', $visit->utm_source);
     }
 
     public function test_plugin_can_cancel_visit_tracking_by_returning_null(): void
     {
-        $plugin = new class extends AbstractPlugin {
-            public function getIdentifiant(): string { return 'filter-plugin'; }
-            public function getNom(): string { return 'Filter Plugin'; }
-            public function getVersion(): string { return '1.0.0'; }
-
-            public function enrichirTracking(array $donnees, $request): ?array
+        $plugin = new class extends AbstractPlugin
+        {
+            public function slug(): string
             {
-                if ($request->ip() === '127.0.0.1') {
-                    return null; // Cancel tracking
-                }
-                return $donnees;
+                return 'filter-plugin';
+            }
+
+            public function name(): string
+            {
+                return 'Filter Plugin';
+            }
+
+            public function version(): string
+            {
+                return '1.0.0';
+            }
+
+            public function filterVisit(array $data, Request $request): ?array
+            {
+                return $request->ip() === '127.0.0.1' ? null : $data;
             }
         };
 
-        $manager = app(PluginManager::class);
-        $reflection = new \ReflectionClass($manager);
-        $actifsProp = $reflection->getProperty('pluginsActifs');
-        $actifsProp->setAccessible(true);
-        $actifsProp->setValue($manager, ['filter-plugin' => $plugin]);
+        $this->injectActivePlugins(['filter-plugin' => $plugin]);
 
         $service = app(TrackingService::class);
 
-        // 1. Filtered request (127.0.0.1) -> should be cancelled
-        $filteredRequest = Request::create('/tracker.js', 'POST', [], [], [], [
-            'REMOTE_ADDR' => '127.0.0.1',
-        ]);
-
-        $visite = $service->enregistrerVisite($this->site, [
+        $cancelled = $service->recordVisit($this->site, [
             'url' => 'https://example.com/home',
-            'chemin' => '/home',
-        ], $filteredRequest);
+            'path' => '/home',
+        ], $this->request('127.0.0.1'));
 
-        $this->assertNull($visite);
-        $this->assertDatabaseCount('visites', 0);
+        $this->assertNull($cancelled);
+        $this->assertDatabaseCount('visits', 0);
 
-        // 2. Allowed request (other IP) -> should be recorded
-        $allowedRequest = Request::create('/tracker.js', 'POST', [], [], [], [
-            'REMOTE_ADDR' => '8.8.8.8',
-            'HTTP_USER_AGENT' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        ]);
-
-        $visite2 = $service->enregistrerVisite($this->site, [
+        $recorded = $service->recordVisit($this->site, [
             'url' => 'https://example.com/home',
-            'chemin' => '/home',
-        ], $allowedRequest);
+            'path' => '/home',
+        ], $this->request('8.8.8.8'));
 
-        $this->assertNotNull($visite2);
-        $this->assertDatabaseCount('visites', 1);
+        $this->assertNotNull($recorded);
+        $this->assertDatabaseCount('visits', 1);
     }
 
     public function test_plugin_can_cancel_event_tracking_by_returning_null(): void
     {
-        $plugin = new class extends AbstractPlugin {
-            public function getIdentifiant(): string { return 'event-filter-plugin'; }
-            public function getNom(): string { return 'Event Filter Plugin'; }
-            public function getVersion(): string { return '1.0.0'; }
-
-            public function enrichirTracking(array $donnees, $request): ?array
+        $plugin = new class extends AbstractPlugin
+        {
+            public function slug(): string
             {
-                if (($donnees['nom'] ?? '') === 'blocked_event') {
-                    return null;
-                }
-                return $donnees;
+                return 'event-filter-plugin';
+            }
+
+            public function name(): string
+            {
+                return 'Event Filter Plugin';
+            }
+
+            public function version(): string
+            {
+                return '1.0.0';
+            }
+
+            public function filterEvent(array $data, Request $request): ?array
+            {
+                return ($data['name'] ?? '') === 'blocked_event' ? null : $data;
             }
         };
 
-        $manager = app(PluginManager::class);
-        $reflection = new \ReflectionClass($manager);
-        $actifsProp = $reflection->getProperty('pluginsActifs');
-        $actifsProp->setAccessible(true);
-        $actifsProp->setValue($manager, ['event-filter-plugin' => $plugin]);
+        $this->injectActivePlugins(['event-filter-plugin' => $plugin]);
 
         $service = app(TrackingService::class);
-        $request = Request::create('/tracker.js', 'POST');
 
-        // Blocked event
-        $evt1 = $service->enregistrerEvenement($this->site, [
-            'nom' => 'blocked_event',
-        ], $request);
+        $blocked = $service->recordEvent($this->site, ['name' => 'blocked_event'], $this->request());
 
-        $this->assertNull($evt1);
-        $this->assertDatabaseCount('evenements', 0);
+        $this->assertNull($blocked);
+        $this->assertDatabaseCount('events', 0);
 
-        // Allowed event
-        $evt2 = $service->enregistrerEvenement($this->site, [
-            'nom' => 'allowed_event',
-        ], $request);
+        $allowed = $service->recordEvent($this->site, ['name' => 'allowed_event'], $this->request());
 
-        $this->assertNotNull($evt2);
-        $this->assertDatabaseCount('evenements', 1);
+        $this->assertNotNull($allowed);
+        $this->assertDatabaseCount('events', 1);
     }
 
-    public function test_visite_and_evenement_events_are_dispatched(): void
+    public function test_visit_and_event_events_are_dispatched(): void
     {
-        Event::fake([
-            VisiteEnregistree::class,
-            EvenementEnregistre::class,
-        ]);
+        Event::fake([VisitRecorded::class, EventRecorded::class]);
 
         $service = app(TrackingService::class);
-        $request = Request::create('/tracker.js', 'POST', [], [], [], [
-            'REMOTE_ADDR' => '1.2.3.4',
-            'HTTP_USER_AGENT' => 'Mozilla/5.0',
-            'HTTP_REFERER' => 'https://google.com',
-        ]);
+        $request = $this->request('1.2.3.4', 'https://google.com');
 
-        $visite = $service->enregistrerVisite($this->site, [
+        $visit = $service->recordVisit($this->site, [
             'url' => 'https://example.com/page',
-            'chemin' => '/page',
+            'path' => '/page',
         ], $request);
 
-        Event::assertDispatched(VisiteEnregistree::class, function (VisiteEnregistree $event) use ($visite) {
-            return $event->visite->id === $visite->id &&
-                $event->metadonnees['ip'] === '1.2.3.4' &&
-                $event->metadonnees['referer'] === 'https://google.com';
+        Event::assertDispatched(VisitRecorded::class, function (VisitRecorded $event) use ($visit): bool {
+            return $event->visit->id === $visit->id
+                && $event->metadata['ip'] === '1.2.3.4'
+                && $event->metadata['referer'] === 'https://google.com';
         });
 
-        $service->enregistrerEvenement($this->site, [
-            'nom' => 'button_click',
-        ], $request);
+        $service->recordEvent($this->site, ['name' => 'button_click'], $request);
 
-        Event::assertDispatched(EvenementEnregistre::class, function (EvenementEnregistre $event) {
-            return $event->evenement->nom === 'button_click' &&
-                $event->metadonnees['ip'] === '1.2.3.4';
+        Event::assertDispatched(EventRecorded::class, function (EventRecorded $event): bool {
+            return $event->event->name === 'button_click'
+                && $event->metadata['ip'] === '1.2.3.4';
         });
     }
 
-    public function test_plugin_event_listeners_registered_via_get_ecouteurs(): void
+    public function test_plugin_event_listeners_are_registered(): void
     {
-        $handledVisiteId = null;
+        $plugin = new class extends AbstractPlugin
+        {
+            public static ?int $lastVisitId = null;
 
-        $plugin = new class($handledVisiteId) extends AbstractPlugin {
-            public static $lastVisiteId = null;
+            public function slug(): string
+            {
+                return 'listener-plugin';
+            }
 
-            public function getIdentifiant(): string { return 'listener-plugin'; }
-            public function getNom(): string { return 'Listener Plugin'; }
-            public function getVersion(): string { return '1.0.0'; }
+            public function name(): string
+            {
+                return 'Listener Plugin';
+            }
 
-            public function getEcouteurs(): array
+            public function version(): string
+            {
+                return '1.0.0';
+            }
+
+            public function listeners(): array
             {
                 return [
-                    VisiteEnregistree::class => [
-                        function (VisiteEnregistree $event) {
-                            self::$lastVisiteId = $event->visite->id;
+                    VisitRecorded::class => [
+                        function (VisitRecorded $event): void {
+                            self::$lastVisitId = $event->visit->id;
                         },
                     ],
                 ];
             }
         };
 
-        // When plugin is registered, listeners are attached
-        $plugin->enregistrer();
+        $plugin->register();
 
-        $service = app(TrackingService::class);
-        $request = Request::create('/tracker.js', 'POST');
-
-        $visite = $service->enregistrerVisite($this->site, [
+        $visit = app(TrackingService::class)->recordVisit($this->site, [
             'url' => 'https://example.com/blog',
-            'chemin' => '/blog',
-        ], $request);
+            'path' => '/blog',
+        ], $this->request());
 
-        $this->assertNotNull($visite);
-        $this->assertSame($visite->id, $plugin::$lastVisiteId);
+        $this->assertNotNull($visit);
+        $this->assertSame($visit->id, $plugin::$lastVisitId);
     }
 
-    public function test_plugin_activation_and_deactivation_events_are_dispatched(): void
+    public function test_plugin_enabled_and_disabled_events_are_dispatched(): void
     {
-        Event::fake([
-            PluginActive::class,
-            PluginDesactive::class,
-        ]);
+        Event::fake([PluginEnabled::class, PluginDisabled::class]);
 
         $pluginDir = base_path('plugins/EventTestPlugin');
         File::ensureDirectoryExists($pluginDir.'/src');
 
-        $manifest = [
-            'identifiant' => 'event-test-plugin',
-            'nom' => 'Event Test Plugin',
+        File::put($pluginDir.'/manifest.json', json_encode([
+            'slug' => 'event-test-plugin',
+            'name' => 'Event Test Plugin',
             'version' => '1.0.0',
-            'classe' => 'Plugins\\EventTestPlugin\\EventTestPlugin',
-        ];
+            'class' => 'Plugins\\EventTestPlugin\\EventTestPlugin',
+        ]));
 
-        File::put($pluginDir.'/manifest.json', json_encode($manifest));
-
-        $phpCode = <<<'PHP'
+        File::put($pluginDir.'/src/EventTestPlugin.php', <<<'PHP'
 <?php
+
 namespace Plugins\EventTestPlugin;
 
-use App\Core\Plugin\AbstractPlugin;
+use App\Plugins\AbstractPlugin;
 
 class EventTestPlugin extends AbstractPlugin
 {
-    public function getIdentifiant(): string { return 'event-test-plugin'; }
-    public function getNom(): string { return 'Event Test Plugin'; }
-    public function getVersion(): string { return '1.0.0'; }
+    public function slug(): string { return 'event-test-plugin'; }
+    public function name(): string { return 'Event Test Plugin'; }
+    public function version(): string { return '1.0.0'; }
 }
-PHP;
-
-        File::put($pluginDir.'/src/EventTestPlugin.php', $phpCode);
+PHP);
 
         try {
             $manager = app(PluginManager::class);
-            $manager->reinitialiser();
+            $manager->reset();
 
-            $manager->activer('event-test-plugin');
-            Event::assertDispatched(PluginActive::class, function (PluginActive $event) {
-                return $event->identifiant === 'event-test-plugin';
-            });
+            $this->assertTrue($manager->enable('event-test-plugin'));
+            Event::assertDispatched(PluginEnabled::class, fn (PluginEnabled $event): bool => $event->slug === 'event-test-plugin');
 
-            $manager->desactiver('event-test-plugin');
-            Event::assertDispatched(PluginDesactive::class, function (PluginDesactive $event) {
-                return $event->identifiant === 'event-test-plugin';
-            });
+            $this->assertTrue($manager->disable('event-test-plugin'));
+            Event::assertDispatched(PluginDisabled::class, fn (PluginDisabled $event): bool => $event->slug === 'event-test-plugin');
         } finally {
             File::deleteDirectory($pluginDir);
         }
+    }
+
+    private function request(string $ip = '8.8.8.8', ?string $referer = null): Request
+    {
+        $server = [
+            'REMOTE_ADDR' => $ip,
+            'HTTP_USER_AGENT' => 'Mozilla/5.0 (X11; Linux x86_64)',
+        ];
+
+        if ($referer !== null) {
+            $server['HTTP_REFERER'] = $referer;
+        }
+
+        return Request::create('/tracker.js', 'POST', [], [], [], $server);
+    }
+
+    /**
+     * @param  array<string, \App\Plugins\Contracts\Plugin>  $plugins
+     */
+    private function injectActivePlugins(array $plugins): void
+    {
+        $manager = app(PluginManager::class);
+        $reflection = new \ReflectionClass($manager);
+        $property = $reflection->getProperty('active');
+        $property->setAccessible(true);
+        $property->setValue($manager, $plugins);
     }
 }
