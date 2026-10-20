@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Events;
+namespace App\Analytics\Events;
 
-use App\Models\Event;
+use App\Analytics\Models\Visit;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class EventRecorded
+class VisitRecorded
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -18,7 +18,7 @@ class EventRecorded
      * @param  array<string, mixed>  $metadata
      */
     public function __construct(
-        public readonly Event $event,
+        public readonly Visit $visit,
         public readonly array $data = [],
         public readonly array $metadata = [],
     ) {}

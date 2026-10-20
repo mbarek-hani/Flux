@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Services;
+namespace App\Analytics\Services;
 
-use App\Models\Event;
-use App\Models\Site;
-use App\Models\Visit;
+use App\Analytics\Models\Event;
+use App\Analytics\Models\Site;
+use App\Analytics\Models\Visit;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 

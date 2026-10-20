@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Models\Site;
+use App\Analytics\Models\Site;
+use App\Analytics\Services\StatisticsService;
 use App\Plugins\PluginManager;
-use App\Services\StatisticsService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

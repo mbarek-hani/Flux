@@ -323,14 +323,14 @@ Returning `null` from either filter cancels persistence for that request.
 
 Post-tracking behavior uses Laravel events only:
 
-- `App\Events\VisitRecorded`: `$event->visit`, `$event->data`, `$event->metadata`.
-- `App\Events\EventRecorded`: `$event->event`, `$event->data`, `$event->metadata`.
+- `App\Analytics\Events\VisitRecorded`: `$event->visit`, `$event->data`, `$event->metadata`.
+- `App\Analytics\Events\EventRecorded`: `$event->event`, `$event->data`, `$event->metadata`.
 - `App\Events\PluginEnabled` and `App\Events\PluginDisabled`: `$event->slug`.
 
 Declare listeners from the plugin:
 
 ```php
-use App\Events\VisitRecorded;
+use App\Analytics\Events\VisitRecorded;
 use Plugins\MyPlugin\Listeners\SendDiscordNotification;
 
 public function listeners(): array
@@ -370,10 +370,10 @@ Prefix custom tables with the plugin slug:
 my_plugin_logs
 ```
 
-To attach small values to a visit without creating a table, use `App\Models\VisitMetadata`:
+To attach small values to a visit without creating a table, use `App\Analytics\Models\VisitMetadata`:
 
 ```php
-use App\Models\VisitMetadata;
+use App\Analytics\Models\VisitMetadata;
 
 VisitMetadata::create([
     'visit_id' => $visit->id,

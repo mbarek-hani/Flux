@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Events\EventRecorded;
+use App\Analytics\Events\EventRecorded;
+use App\Analytics\Events\VisitRecorded;
+use App\Analytics\Models\Site;
+use App\Analytics\Services\TrackingService;
 use App\Events\PluginDisabled;
 use App\Events\PluginEnabled;
-use App\Events\VisitRecorded;
-use App\Models\Site;
 use App\Plugins\AbstractPlugin;
 use App\Plugins\Contracts\Plugin;
 use App\Plugins\PluginManager;
-use App\Services\TrackingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Services;
+namespace App\Analytics\Services;
 
-use App\Events\EventRecorded;
-use App\Events\VisitRecorded;
-use App\Models\Event;
-use App\Models\Site;
-use App\Models\Visit;
+use App\Analytics\Events\EventRecorded;
+use App\Analytics\Events\VisitRecorded;
+use App\Analytics\Models\Event;
+use App\Analytics\Models\Site;
+use App\Analytics\Models\Visit;
 use App\Plugins\PluginManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
