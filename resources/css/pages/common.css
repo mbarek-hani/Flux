@@ -304,6 +304,18 @@
     background-color: var(--gray-50);
 }
 
+.p-copy-btn__icon--success {
+    display: none;
+}
+
+.p-copy-btn.is-copied .p-copy-btn__icon--copy {
+    display: none;
+}
+
+.p-copy-btn.is-copied .p-copy-btn__icon--success {
+    display: inline-flex;
+}
+
 /* Flex row helpers */
 .p-row {
     display: flex;

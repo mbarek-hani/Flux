@@ -8,15 +8,15 @@
                 <h2 class="p-page__title u-mb-0">Sites</h2>
                 <x-button variant="primary" href="{{ route('sites.create') }}">
                     <x-custom-icon name="plus" class="c-icon--sm" />
-                    Ajouter un site
+                    Add site
                 </x-button>
             </div>
-            
+
             @if($sites->isEmpty())
                 <x-card>
                     <div class="p-empty">
                         <x-custom-icon name="globe" class="p-empty__icon" />
-                        <p class="p-empty__text">Aucun site pour le moment.</p>
+                        <p class="p-empty__text">No sites yet.</p>
                     </div>
                 </x-card>
             @else
@@ -32,28 +32,28 @@
                                 <div class="p-mt-2">
                                     <p class="p-text--xs u-text-gray-400">
                                         <x-custom-icon name="chart-bar" class="c-icon--xs" />
-                                        {{ $site->visits_count ?? 0 }} visites enregistrées
+                                        {{ $site->visits_count ?? 0 }} visits recorded
                                     </p>
                                 </div>
                             </div>
-                            
+
                             <div class="p-card-footer u-justify-between">
                                 <div class="p-actions">
                                     <form method="POST" action="{{ route('sites.toggle-active', $site) }}">
                                         @csrf
-                                        <x-button size="sm" type="submit" variant="{{ $site->is_active ? 'default' : 'primary' }}" title="{{ $site->is_active ? 'Désactiver' : 'Activer' }}">
+                                        <x-button size="sm" type="submit" variant="{{ $site->is_active ? 'default' : 'primary' }}" title="{{ $site->is_active ? 'Disable' : 'Enable' }}">
                                             <x-custom-icon name="{{ $site->is_active ? 'stop' : 'play' }}" class="c-icon--xs" />
                                         </x-button>
                                     </form>
-                                    <x-button href="{{ route('sites.show', $site) }}" size="sm" title="Détails & Script">
+                                    <x-button href="{{ route('sites.show', $site) }}" size="sm" title="Details & tracking script">
                                         <x-custom-icon name="code" class="c-icon--xs" />
                                     </x-button>
                                 </div>
-                                
-                                <form method="POST" action="{{ route('sites.destroy', $site) }}" onsubmit="return confirm('Supprimer ce site ?')">
+
+                                <form method="POST" action="{{ route('sites.destroy', $site) }}" data-confirm="Delete this site?">
                                     @csrf
                                     @method('DELETE')
-                                    <x-button size="sm" variant="danger" type="submit" title="Supprimer">
+                                    <x-button size="sm" variant="danger" type="submit" title="Delete">
                                         <x-custom-icon name="trash" class="c-icon--xs" />
                                     </x-button>
                                 </form>

@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="title">
-        Ajouter un site
+        Add site
     </x-slot>
     <div class="p-page">
         <div class="p-container p-container--sm">
@@ -9,19 +9,19 @@
                     @csrf
 
                     <div class="p-form-group">
-                        <x-input name="name" label="Nom du site" placeholder="Mon blog" :required="true"
+                        <x-input name="name" label="Site name" placeholder="My blog" :required="true"
                             value="{{ old('name') }}" />
 
-                        <x-input name="domain" label="Domaine" placeholder="monsite.fr" :required="true"
-                            aide="Sans http:// ni www. Exemple : monsite.fr" value="{{ old('domain') }}" />
+                        <x-input name="domain" label="Domain" placeholder="example.com" :required="true"
+                            aide="Without http:// or www. Example: example.com" value="{{ old('domain') }}" />
                     </div>
 
                     <div class="p-card-footer">
                         <x-button variant="primary" type="submit">
-                            Ajouter le site
+                            Add site
                         </x-button>
                         <x-button href="{{ route('sites.index') }}">
-                            Annuler
+                            Cancel
                         </x-button>
                     </div>
                 </form>

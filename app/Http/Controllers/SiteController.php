@@ -39,7 +39,7 @@ class SiteController extends Controller
 
         return redirect()
             ->route('sites.index')
-            ->with('success', 'Site ajouté avec succès.');
+            ->with('success', 'Site added successfully.');
     }
 
     public function show(Site $site): View
@@ -53,7 +53,7 @@ class SiteController extends Controller
 
         return redirect()
             ->route('sites.index')
-            ->with('success', 'Statut du site modifié avec succès.');
+            ->with('success', 'Site status updated successfully.');
     }
 
     public function destroy(Site $site): RedirectResponse
@@ -62,6 +62,6 @@ class SiteController extends Controller
 
         return redirect()
             ->route('sites.index')
-            ->with('success', 'Site supprimé.');
+            ->with('success', 'Site deleted.');
     }
 }

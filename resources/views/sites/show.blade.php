@@ -1,32 +1,31 @@
 <x-app-layout>
     <x-slot name="title">
-        Site : {{ $site->name }}
+        Site: {{ $site->name }}
     </x-slot>
     <div class="p-page">
         <div class="p-container p-container--md p-stack">
             <div class="p-row p-row--between">
                 <x-button href="{{ route('sites.index') }}">
                     <x-custom-icon name="arrow-left" class="c-icon c-icon--sm"></x-custom-icon>
-                    Retour
+                    Back
                 </x-button>
             </div>
 
-            {{-- Infos du site --}}
-            <x-card title="Informations">
-                <div class="p-grid p-grid--2 p-grid--gap-md" style="font-size: 0.875rem;">
+            <x-card title="Information">
+                <div class="p-grid p-grid--2 p-grid--gap-md u-text-sm">
                     <div>
-                        <span class="p-info-label">Domaine</span>
+                        <span class="p-info-label">Domain</span>
                         <p class="p-info-value">{{ $site->domain }}</p>
                     </div>
                     <div>
-                        <span class="p-info-label">Statut</span>
+                        <span class="p-info-label">Status</span>
                         <p class="p-info-value {{ $site->is_active ? 'p-info-value--active' : 'p-info-value--inactive' }}">
-                            {{ $site->is_active ? 'Actif' : 'Inactif' }}
+                            {{ $site->is_active ? 'Active' : 'Inactive' }}
                         </p>
                     </div>
                     <div>
-                        <span class="p-info-label">Créé le</span>
-                        <p class="p-info-value">{{ $site->created_at->format('d/m/Y à H:i') }}</p>
+                        <span class="p-info-label">Created</span>
+                        <p class="p-info-value">{{ $site->created_at->format('d/m/Y \a\t H:i') }}</p>
                     </div>
                     <div>
                         <span class="p-info-label">Token</span>
@@ -35,34 +34,33 @@
                 </div>
             </x-card>
 
-            {{-- Script de tracking --}}
-            <x-card title="Script de tracking">
+            <x-card title="Tracking script">
                 <p class="p-text p-mb-3">
-                    Copiez ce code et collez-le juste avant la balise <code
-                        class="p-code">&lt;/head&gt;</code> de votre site.
+                    Copy this code and paste it just before the <code class="p-code">&lt;/head&gt;</code> tag on your site.
                 </p>
 
-                <div x-data="{ copie: false }" class="p-copy-wrapper">
-                    <pre
-                        class="p-code-block"><code x-ref="code">{{ $site->getTrackingScript() }}</code></pre>
+                <div class="p-copy-wrapper">
+                    <pre class="p-code-block"><code id="tracking-script">{{ $site->getTrackingScript() }}</code></pre>
 
-                    <button @click="
-                            navigator.clipboard.writeText($refs.code.textContent);
-                            copie = true;
-                            setTimeout(() => copie = false, 2000);
-                        "
-                        class="p-copy-btn">
-                        <span x-show="!copie" x-cloak>
+                    <button type="button"
+                        class="p-copy-btn"
+                        data-copy-button
+                        data-copy-target="tracking-script"
+                        data-copy-label="Copy tracking script"
+                        data-copy-success-label="Tracking script copied"
+                        title="Copy tracking script"
+                        aria-label="Copy tracking script">
+                        <span class="p-copy-btn__icon p-copy-btn__icon--copy">
                             <x-custom-icon name="clipboard" class="c-icon--sm c-icon--gray-500" />
                         </span>
-
-                        <span x-show="copie" x-cloak>
+                        <span class="p-copy-btn__icon p-copy-btn__icon--success">
                             <x-custom-icon name="check" class="c-icon--sm c-icon--success" />
                         </span>
                     </button>
                 </div>
             </x-card>
 
+            @hook('site.show.after', ['site' => $site])
         </div>
     </div>
 </x-app-layout>

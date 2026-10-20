@@ -8,6 +8,7 @@
 
     .u-italic { font-style: italic; }
     .u-font-normal { font-weight: 400; }
+    .u-text-sm { font-size: 0.875rem; }
     .u-no-underline { text-decoration: none; }
     .u-break-all { word-break: break-all; }
 
