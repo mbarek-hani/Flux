@@ -1,3 +1,5 @@
+@layer layouts {
+
 .l-guest {
     min-height: 100vh;
     display: flex;
@@ -35,5 +37,7 @@
 .l-guest__footer {
     margin-top: 1.5rem;
     font-size: 0.75rem;
-    color: #9ca3af;
+    color: var(--gray-400);
+}
+
 }

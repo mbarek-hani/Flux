@@ -1,0 +1,64 @@
+@layer tokens {
+    :root {
+        /* Typography */
+        --font-sans: 'Figtree', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        --text-xs: 0.75rem;
+        --text-sm: 0.875rem;
+        --text-base: 1rem;
+        --text-lg: 1.125rem;
+        --text-xl: 1.5rem;
+        --text-2xl: 2rem;
+
+        /* Spacing */
+        --space-1: 0.25rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.25rem;
+        --space-6: 1.5rem;
+        --space-8: 2rem;
+        --space-10: 2.5rem;
+
+        /* Shape */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        --radius-full: 9999px;
+
+        /* Elevation */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+        /* Motion */
+        --transition-fast: 150ms;
+        --transition-base: 200ms;
+        --transition-slow: 300ms;
+
+        /* Layering */
+        --z-base: 0;
+        --z-topbar: 10;
+        --z-overlay: 20;
+        --z-sidebar: 30;
+        --z-dropdown: 50;
+        --z-modal: 50;
+        --z-alert: 100;
+
+        /* Charts and maps */
+        --chart-1: #10b981;
+        --chart-2: #3b82f6;
+        --chart-3: #f59e0b;
+        --chart-4: #ef4444;
+        --chart-5: #8b5cf6;
+        --chart-6: #06b6d4;
+        --chart-7: #ec4899;
+        --chart-8: #84cc16;
+        --chart-grid: rgba(107, 114, 128, 0.2);
+        --map-background: #f3f4f6;
+        --map-region: #d1d5db;
+        --map-region-hover: #a7f3d0;
+        --map-marker: #10b981;
+    }
+}

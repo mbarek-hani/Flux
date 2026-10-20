@@ -1,3 +1,5 @@
+@layer pages {
+
 .p-auth__title {
     font-size: 1.125rem;
     font-weight: 600;
@@ -92,4 +94,6 @@
     align-items: center;
     justify-content: flex-end;
     margin-top: 1rem;
+}
+
 }

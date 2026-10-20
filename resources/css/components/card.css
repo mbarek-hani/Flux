@@ -1,3 +1,5 @@
+@layer components {
+
 .c-card {
     background-color: var(--gray-50);
     border: 1px solid var(--gray-200);
@@ -20,4 +22,6 @@
 /* Modifier for padding */
 .c-card__body--padded {
     padding: 1rem;
+}
+
 }

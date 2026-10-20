@@ -1,3 +1,5 @@
+@layer components {
+
 .c-logo {
     display: flex;
     align-items: center;
@@ -17,4 +19,6 @@
     color: var(--color-primary);
     text-transform: uppercase;
     user-select: none;
+}
+
 }

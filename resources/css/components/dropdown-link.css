@@ -1,3 +1,5 @@
+@layer components {
+
 .c-dropdown-link {
     display: block;
     width: 100%;
@@ -15,4 +17,6 @@
 .c-dropdown-link:focus {
     background-color: var(--gray-100);
     outline: none;
+}
+
 }

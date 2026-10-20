@@ -1,75 +1,78 @@
-.c-modal {
-    position: fixed;
-    inset: 0;
-    overflow-y: auto;
-    padding: 1.5rem 1rem;
-    z-index: 50;
-}
-
-@media (min-width: 640px) {
+@layer components {
     .c-modal {
-        padding-left: 0;
-        padding-right: 0;
+        position: fixed;
+        inset: 0;
+        overflow-y: auto;
+        padding: 1.5rem 1rem;
+        z-index: var(--z-modal);
     }
-}
 
-.c-modal__overlay {
-    position: fixed;
-    inset: 0;
-    transition-property: all;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 300ms;
-}
+    @media (min-width: 640px) {
+        .c-modal {
+            padding-left: 0;
+            padding-right: 0;
+        }
+    }
 
-.c-modal__backdrop {
-    position: absolute;
-    inset: 0;
-    background-color: var(--gray-700);
-    opacity: 0.75;
-}
+    .c-modal__overlay {
+        position: fixed;
+        inset: 0;
+        transition-property: all;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: var(--transition-slow);
+    }
 
-.c-modal__content {
-    position: relative;
-    z-index: 10;
-    margin-bottom: 1.5rem;
-    background-color: var(--surface-white);
-    border-radius: 0.5rem;
-    overflow: hidden;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    transition-property: all;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 300ms;
-}
+    .c-modal__backdrop {
+        position: absolute;
+        inset: 0;
+        background-color: var(--gray-700);
+        opacity: 0.75;
+    }
 
-@media (min-width: 640px) {
     .c-modal__content {
-        width: 100%;
-        margin-left: auto;
-        margin-right: auto;
+        position: relative;
+        z-index: 10;
+        margin-bottom: 1.5rem;
+        background-color: var(--surface-white);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-xl);
+        transition-property: all;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: var(--transition-slow);
     }
-    .c-modal__content--sm { max-width: 24rem; }
-    .c-modal__content--md { max-width: 28rem; }
-    .c-modal__content--lg { max-width: 32rem; }
-    .c-modal__content--xl { max-width: 36rem; }
-    .c-modal__content--2xl { max-width: 42rem; }
-}
 
-.c-transition-modal-enter { transition: all 0.3s ease-out; }
-.c-transition-modal-enter-start { opacity: 0; }
-.c-transition-modal-enter-end { opacity: 1; }
-.c-transition-modal-leave { transition: all 0.2s ease-in; }
-.c-transition-modal-leave-start { opacity: 1; }
-.c-transition-modal-leave-end { opacity: 0; }
+    @media (min-width: 640px) {
+        .c-modal__content {
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
 
-.c-transition-modal-content-enter { transition: all 0.3s ease-out; }
-.c-transition-modal-content-enter-start { opacity: 0; transform: translateY(1rem); }
-@media (min-width: 640px) {
-    .c-transition-modal-content-enter-start { transform: translateY(0) scale(0.95); }
-}
-.c-transition-modal-content-enter-end { opacity: 1; transform: translateY(0) scale(1); }
-.c-transition-modal-content-leave { transition: all 0.2s ease-in; }
-.c-transition-modal-content-leave-start { opacity: 1; transform: translateY(0) scale(1); }
-.c-transition-modal-content-leave-end { opacity: 0; transform: translateY(1rem); }
-@media (min-width: 640px) {
-    .c-transition-modal-content-leave-end { transform: translateY(0) scale(0.95); }
+        .c-modal__content--sm { max-width: 24rem; }
+        .c-modal__content--md { max-width: 28rem; }
+        .c-modal__content--lg { max-width: 32rem; }
+        .c-modal__content--xl { max-width: 36rem; }
+        .c-modal__content--2xl { max-width: 42rem; }
+    }
+
+    .c-transition-modal-enter { transition: all 0.3s ease-out; }
+    .c-transition-modal-enter-start { opacity: 0; }
+    .c-transition-modal-enter-end { opacity: 1; }
+    .c-transition-modal-leave { transition: all 0.2s ease-in; }
+    .c-transition-modal-leave-start { opacity: 1; }
+    .c-transition-modal-leave-end { opacity: 0; }
+
+    .c-transition-modal-content-enter { transition: all 0.3s ease-out; }
+    .c-transition-modal-content-enter-start { opacity: 0; transform: translateY(1rem); }
+    @media (min-width: 640px) {
+        .c-transition-modal-content-enter-start { transform: translateY(0) scale(0.95); }
+    }
+    .c-transition-modal-content-enter-end { opacity: 1; transform: translateY(0) scale(1); }
+    .c-transition-modal-content-leave { transition: all 0.2s ease-in; }
+    .c-transition-modal-content-leave-start { opacity: 1; transform: translateY(0) scale(1); }
+    .c-transition-modal-content-leave-end { opacity: 0; transform: translateY(1rem); }
+    @media (min-width: 640px) {
+        .c-transition-modal-content-leave-end { transform: translateY(0) scale(0.95); }
+    }
 }

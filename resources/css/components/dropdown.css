@@ -1,3 +1,5 @@
+@layer components {
+
 .c-dropdown {
     position: relative;
 }
@@ -64,4 +66,6 @@
 .c-transition-fade-leave-end {
     opacity: 0;
     transform: scale(0.95);
+}
+
 }

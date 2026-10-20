@@ -1,3 +1,5 @@
+@layer components {
+
 .c-input-label {
     display: block;
     font-size: 0.875rem;
@@ -50,5 +52,7 @@
 
 .c-input--error:focus {
     border-color: var(--error-accent);
-    box-shadow: 0 0 0 1px var(--ring-offset), 0 0 0 3px #fecaca;
+    box-shadow: 0 0 0 1px var(--ring-offset), 0 0 0 3px var(--error-border);
+}
+
 }

@@ -1,3 +1,5 @@
+@layer pages {
+
 /* Dashboard-specific styles */
 
 /* Controls row — REDUCED margin/gap */
@@ -415,4 +417,6 @@
     .p-dash__grid-2 {
         grid-template-columns: repeat(2, 1fr);
     }
+}
+
 }

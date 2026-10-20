@@ -1,3 +1,5 @@
+@layer layouts {
+
 .l-app {
     min-height: 100vh;
     display: flex;
@@ -484,4 +486,6 @@
 
 .l-sidebar--collapsed .c-sidebar-link:hover .c-sidebar-link__tooltip {
     display: block;
+}
+
 }

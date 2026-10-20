@@ -1,3 +1,5 @@
+@layer components {
+
 .c-icon {
     display: inline-block;
     vertical-align: middle;
@@ -25,4 +27,6 @@
 .c-icon--error { color: var(--error-accent); }
 .c-icon--info { color: var(--info-accent); }
 .c-icon--warning { color: var(--warning-accent); }
+
+}
 
