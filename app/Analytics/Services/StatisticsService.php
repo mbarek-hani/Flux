@@ -7,6 +7,7 @@ namespace App\Analytics\Services;
 use App\Analytics\Models\Event;
 use App\Analytics\Models\Site;
 use App\Analytics\Models\Visit;
+use DateTimeInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -17,7 +18,7 @@ class StatisticsService
     /**
      * @return array<string, int|float>
      */
-    public function summary(string $start, string $end): array
+    public function summary(DateTimeInterface|string $start, DateTimeInterface|string $end): array
     {
         $base = Visit::query()
             ->where('site_id', $this->site->id)
@@ -41,7 +42,7 @@ class StatisticsService
         ];
     }
 
-    public function topPages(string $start, string $end, int $limit = 10): Collection
+    public function topPages(DateTimeInterface|string $start, DateTimeInterface|string $end, int $limit = 10): Collection
     {
         return Visit::query()
             ->where('site_id', $this->site->id)
@@ -57,7 +58,7 @@ class StatisticsService
             ->get();
     }
 
-    public function devices(string $start, string $end): Collection
+    public function devices(DateTimeInterface|string $start, DateTimeInterface|string $end): Collection
     {
         return Visit::query()
             ->where('site_id', $this->site->id)
@@ -71,7 +72,7 @@ class StatisticsService
             ->get();
     }
 
-    public function topCountries(string $start, string $end, int $limit = 10): Collection
+    public function topCountries(DateTimeInterface|string $start, DateTimeInterface|string $end, int $limit = 10): Collection
     {
         return Visit::query()
             ->where('site_id', $this->site->id)
@@ -88,7 +89,7 @@ class StatisticsService
             ->get();
     }
 
-    public function dailyEvolution(string $start, string $end): Collection
+    public function dailyEvolution(DateTimeInterface|string $start, DateTimeInterface|string $end): Collection
     {
         return Visit::query()
             ->where('site_id', $this->site->id)
@@ -103,7 +104,7 @@ class StatisticsService
             ->get();
     }
 
-    public function topReferrers(string $start, string $end, int $limit = 10): Collection
+    public function topReferrers(DateTimeInterface|string $start, DateTimeInterface|string $end, int $limit = 10): Collection
     {
         return Visit::query()
             ->where('site_id', $this->site->id)
@@ -119,7 +120,7 @@ class StatisticsService
             ->get();
     }
 
-    public function eventsByName(string $start, string $end, int $limit = 20): Collection
+    public function eventsByName(DateTimeInterface|string $start, DateTimeInterface|string $end, int $limit = 20): Collection
     {
         return Event::query()
             ->where('site_id', $this->site->id)
@@ -135,7 +136,7 @@ class StatisticsService
             ->get();
     }
 
-    public function eventsByDay(string $start, string $end): Collection
+    public function eventsByDay(DateTimeInterface|string $start, DateTimeInterface|string $end): Collection
     {
         return Event::query()
             ->where('site_id', $this->site->id)
@@ -149,7 +150,7 @@ class StatisticsService
             ->get();
     }
 
-    public function latestEvents(string $start, string $end, int $limit = 20): Collection
+    public function latestEvents(DateTimeInterface|string $start, DateTimeInterface|string $end, int $limit = 20): Collection
     {
         return Event::query()
             ->where('site_id', $this->site->id)
@@ -159,7 +160,7 @@ class StatisticsService
             ->get();
     }
 
-    public function eventsByPage(string $start, string $end): Collection
+    public function eventsByPage(DateTimeInterface|string $start, DateTimeInterface|string $end): Collection
     {
         return $this->site
             ->events()
@@ -171,8 +172,8 @@ class StatisticsService
     }
 
     public function topParameter(
-        string $start,
-        string $end,
+        DateTimeInterface|string $start,
+        DateTimeInterface|string $end,
         string $column,
         int $limit = 10,
     ): Collection {
