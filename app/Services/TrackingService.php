@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Core\Plugin\PluginManager;
+use App\Events\EvenementEnregistre;
+use App\Events\VisiteEnregistree;
 use App\Models\Evenement;
 use App\Models\Site;
 use App\Models\Visite;
@@ -31,6 +33,10 @@ class TrackingService
             // Pipeline plugins : enrichir les données AVANT stockage
             $manager = app(PluginManager::class);
             $donnees = $manager->enrichirTracking($donnees, $request);
+
+            if ($donnees === null) {
+                return null;
+            }
 
             $sessionId = $this->genererSessionId($request, $site->id);
 
@@ -64,6 +70,13 @@ class TrackingService
 
             // Pipeline plugins : traitement APRÈS stockage
             $manager->apresVisite($visite, $donnees, $request);
+
+            VisiteEnregistree::dispatch($visite, $donnees, [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'referer' => $request->header('referer'),
+                'site_id' => $site->id,
+            ]);
 
             return $visite;
         } catch (\Throwable $e) {
@@ -121,6 +134,10 @@ class TrackingService
             $manager = app(PluginManager::class);
             $donnees = $manager->enrichirTracking($donnees, $request);
 
+            if ($donnees === null) {
+                return null;
+            }
+
             $visite = Visite::where('site_id', $site->id)
                 ->where('session_id', $sessionId)
                 ->latest('cree_le')
@@ -139,6 +156,13 @@ class TrackingService
 
             // Pipeline plugins
             $manager->apresEvenement($evenement, $donnees, $request);
+
+            EvenementEnregistre::dispatch($evenement, $donnees, [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'referer' => $request->header('referer'),
+                'site_id' => $site->id,
+            ]);
 
             return $evenement;
         } catch (\Throwable $e) {

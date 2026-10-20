@@ -6,6 +6,7 @@ namespace App\Core\Plugin;
 
 use App\Models\Plugin;
 use Illuminate\Database\Migrations\Migrator;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
@@ -54,6 +55,16 @@ abstract class AbstractPlugin implements PluginInterface
     {
         $this->enregistrerRoutes();
         $this->enregistrerVues();
+        $this->enregistrerEvenements();
+    }
+
+    protected function enregistrerEvenements(): void
+    {
+        foreach ($this->getEcouteurs() as $evenement => $ecouteurs) {
+            foreach ((array) $ecouteurs as $ecouteur) {
+                Event::listen($evenement, $ecouteur);
+            }
+        }
     }
 
     protected function enregistrerRoutes(): void
@@ -174,13 +185,21 @@ abstract class AbstractPlugin implements PluginInterface
     }
 
     /**
+     * @return array<class-string, array<int, class-string|callable>|class-string|callable>
+     */
+    public function getEcouteurs(): array
+    {
+        return [];
+    }
+
+    /**
      * @param array<string, mixed> $donnees
      * @param mixed $request
      * @return array<string, mixed>|null
      */
     public function enrichirTracking(array $donnees, $request): ?array
     {
-        return null;
+        return $donnees;
     }
 
     public function apresVisite($visite, array $donnees, $request): void {}

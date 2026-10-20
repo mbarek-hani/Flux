@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Core\Plugin;
 
+use App\Events\PluginActive;
+use App\Events\PluginDesactive;
 use App\Models\Evenement;
 use App\Models\Plugin as PluginModele;
 use App\Models\Visite;
@@ -128,6 +130,8 @@ class PluginManager
             Cache::forget('plugins.actifs');
             $this->chargerPlugin($plugin);
 
+            PluginActive::dispatch($plugin, $id);
+
             return true;
         } catch (\Throwable $e) {
             Log::error("Activation [{$id}] : ".$e->getMessage(), [
@@ -164,6 +168,8 @@ class PluginManager
                     fn (PluginInterface $p) => $p->getIdentifiant() !== $id,
                 ));
             }
+
+            PluginDesactive::dispatch($id);
 
             return true;
         } catch (\Throwable $e) {
@@ -222,21 +228,27 @@ class PluginManager
 
     /**
      * Passe les données de tracking à travers tous les plugins actifs.
-     * Chaque plugin peut enrichir les données.
+     * Chaque plugin peut enrichir les données ou retourner null pour annuler le tracking.
      *
      * @param  array<string, mixed>  $donnees
-     * @return array<string, mixed>
+     * @return array<string, mixed>|null
      */
-    public function enrichirTracking(array $donnees, Request $request): array
+    public function enrichirTracking(array $donnees, Request $request): ?array
     {
         foreach ($this->pluginsActifs as $plugin) {
             try {
                 $resultat = $plugin->enrichirTracking($donnees, $request);
-                if ($resultat !== null) {
-                    $donnees = $resultat;
+
+                // Si un plugin retourne explicitement null, le tracking est annulé
+                if ($resultat === null) {
+                    return null;
                 }
+
+                $donnees = $resultat;
             } catch (\Throwable $e) {
-                Log::error("Plugin [{$plugin->getIdentifiant()}] enrichirTracking : ".$e->getMessage());
+                Log::error("Plugin [{$plugin->getIdentifiant()}] enrichirTracking : ".$e->getMessage(), [
+                    'exception' => $e,
+                ]);
             }
         }
 

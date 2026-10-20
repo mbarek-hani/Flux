@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Core\Plugin;
 
 use App\Models\Evenement;
@@ -61,34 +63,49 @@ interface PluginInterface
     /** @return string[] */
     public function getHooks(): array;
 
+    /**
+     * @param  array<string, mixed>  $donnees
+     */
     public function rendrePourHook(string $hook, array $donnees = []): string;
+
+    // Événements Laravel
+
+    /**
+     * Écouteurs d'événements Laravel enregistrés par ce plugin.
+     * Permet d'écouter VisiteEnregistree, EvenementEnregistre, etc. avec des écouteurs synchrones ou en file d'attente (ShouldQueue).
+     *
+     * @return array<class-string, array<int, class-string|callable>|class-string|callable>
+     */
+    public function getEcouteurs(): array;
 
     // Tracking : enrichissement des données
 
     /**
      * Traite les données de tracking AVANT enregistrement.
      * Permet au plugin d'ajouter/modifier des données.
-     * Retourne null pour ne rien modifier.
+     * Retourne les données modifiées, ou null pour annuler et ignorer l'enregistrement de ce tracking.
      *
-     * @param  array  $donnees  Données brutes du tracker
+     * @param  array<string, mixed>  $donnees  Données brutes du tracker
      * @param  Request  $request
-     * @return array|null Données enrichies ou null
+     * @return array<string, mixed>|null Données enrichies ou null pour annuler
      */
     public function enrichirTracking(array $donnees, $request): ?array;
 
     /**
-     * Appelé APRÈS l'enregistrement d'une visite.
+     * Appelé APRÈS l'enregistrement d'une visite (exécution synchrone).
      * Permet au plugin de stocker ses propres métadonnées.
      *
      * @param  Visite  $visite
+     * @param  array<string, mixed>  $donnees
      * @param  Request  $request
      */
     public function apresVisite($visite, array $donnees, $request): void;
 
     /**
-     * Appelé APRÈS l'enregistrement d'un événement.
+     * Appelé APRÈS l'enregistrement d'un événement (exécution synchrone).
      *
      * @param  Evenement  $evenement
+     * @param  array<string, mixed>  $donnees
      * @param  Request  $request
      */
     public function apresEvenement($evenement, array $donnees, $request): void;

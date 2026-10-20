@@ -238,6 +238,7 @@ La véritable puissance des plugins Flux réside dans la manipulation du pipelin
 ### 6.1 Modifier ou filtrer les données (Avant Enregistrement)
 
 Appelée à chaque requête de tracking entrante, `enrichirTracking` vous permet d'altérer les données brutes avant qu'elles ne soient écrites en base.
+Si vous retournez `null`, **le tracking est immédiatement annulé** et aucune donnée n'est enregistrée en base.
 
 ```php
 public function enrichirTracking(array $donnees, $request): ?array
@@ -247,28 +248,56 @@ public function enrichirTracking(array $donnees, $request): ?array
         return null; 
     }
 
-    // Ajouter une donnée personnalisée
-    $donnees['heure_traitement'] = now()->toTimeString();
+    // Ajouter ou altérer des données
+    $donnees['titre'] = 'Custom: ' . ($donnees['titre'] ?? '');
 
     return $donnees;
 }
 ```
 
-### 6.2 Réagir à un événement (Après Enregistrement)
+### 6.2 Traitement Synchrone (Après Enregistrement)
 
-Déclenchez une action asynchrone, envoyez un email ou stockez une métadonnée dès qu'une visite ou un événement a eu lieu :
+Pour des traitements légers et rapides (comme enregistrer une métadonnée liée à la visite), surchargez `apresVisite` ou `apresEvenement` :
 
 ```php
 public function apresVisite($visite, array $donnees, $request): void
 {
-    // Exemple : si le paramètre UTM source est "newsletter"
     if (($donnees['utm_source'] ?? '') === 'newsletter') {
-        \Log::info("Visite via newsletter reçue !");
+        \App\Models\PluginMetadonnee::enregistrer(
+            visiteId: $visite->id,
+            plugin:   $this->getIdentifiant(),
+            cle:      'campagne_speciale',
+            valeur:   true
+        );
     }
 }
 ```
 
-### 6.3 Injecter du JavaScript dans le Tracker Client
+### 6.3 Événements Laravel & Files d'attente Asynchrones (Recommandé pour les tâches lourdes)
+
+Pour des tâches exigeantes (envoi de webhooks, notifications, analyse IA externe), n'exécutez pas de code bloquant dans `apresVisite` !
+Flux déclenche des événements Laravel natifs :
+- `App\Events\VisiteEnregistree` : contient `$event->visite`, `$event->donnees` et `$event->metadonnees` (`ip`, `user_agent`, `referer`).
+- `App\Events\EvenementEnregistre` : contient `$event->evenement`, `$event->donnees` et `$event->metadonnees`.
+- `App\Events\PluginActive` / `App\Events\PluginDesactive` : déclenchés lors de l'activation/désactivation d'un plugin.
+
+Votre plugin peut déclarer ses écouteurs (y compris des listeners en file d'attente `ShouldQueue`) via la méthode `getEcouteurs()` :
+
+```php
+use App\Events\VisiteEnregistree;
+use Plugins\MonPlugin\Listeners\EnvoyerNotificationDiscord;
+
+public function getEcouteurs(): array
+{
+    return [
+        VisiteEnregistree::class => [
+            EnvoyerNotificationDiscord::class, // Implémente ShouldQueue pour être exécuté en arrière-plan
+        ],
+    ];
+}
+```
+
+### 6.4 Injecter du JavaScript dans le Tracker Client
 
 Le fichier `tracker.js` est servi à vos clients. Vous pouvez y injecter des scripts additionnels.
 
