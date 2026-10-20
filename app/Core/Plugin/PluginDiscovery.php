@@ -99,8 +99,8 @@ class PluginDiscovery
         }
 
         // 4. Vérifier la conformité de l'interface
-        if (! is_subclass_of($metadata->classe, PluginInterface::class)) {
-            Log::error("La classe {$metadata->classe} n'implémente pas PluginInterface");
+        if (! is_subclass_of($metadata->classe, AbstractPlugin::class)) {
+            Log::error("La classe {$metadata->classe} n'hérite pas de AbstractPlugin");
 
             return null;
         }
