@@ -1,33 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('sites', function (Blueprint $table) {
             $table->id();
-            $table->string('nom');
-            $table->string('domaine')->unique(); // ex: "monsite.com"
-            $table->string('token_tracking', 64)->unique(); // Token du script JS
-            $table->boolean('actif')->default(true);
-            $table->boolean('ignorer_bots')->default(true);
-            $table->boolean('ignorer_dnt')->default(false);
+            $table->string('name');
+            $table->string('domain')->unique();
+            $table->string('tracking_token', 64)->unique();
+            $table->boolean('is_active')->default(true);
+            $table->boolean('ignore_bots')->default(true);
+            $table->boolean('ignore_dnt')->default(false);
             $table->timestamps();
 
-            $table->index('actif');
+            $table->index('is_active');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('sites');

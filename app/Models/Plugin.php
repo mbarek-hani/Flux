@@ -1,39 +1,42 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Plugin extends Model
 {
     protected $fillable = [
-        'identifiant',
-        'nom',
+        'slug',
+        'name',
         'version',
         'description',
-        'auteur',
-        'actif',
+        'author',
+        'is_active',
         'configuration',
-        'metadonnees',
-        'installe_le',
-        'active_le',
+        'metadata',
+        'installed_at',
+        'activated_at',
     ];
 
     protected $casts = [
-        'actif' => 'boolean',
+        'is_active' => 'boolean',
         'configuration' => 'array',
-        'metadonnees' => 'array',
-        'installe_le' => 'datetime',
-        'active_le' => 'datetime',
+        'metadata' => 'array',
+        'installed_at' => 'datetime',
+        'activated_at' => 'datetime',
     ];
 
-    public function scopeActifs($query)
+    public function scopeActive(Builder $query): Builder
     {
-        return $query->where('actif', true);
+        return $query->where('is_active', true);
     }
 
-    public function scopeInstalles($query)
+    public function scopeInstalled(Builder $query): Builder
     {
-        return $query->whereNotNull('installe_le');
+        return $query->whereNotNull('installed_at');
     }
 }

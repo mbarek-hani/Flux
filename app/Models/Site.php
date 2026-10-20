@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
@@ -9,55 +12,51 @@ use Illuminate\Support\Str;
 class Site extends Model
 {
     protected $fillable = [
-        'nom',
-        'domaine',
-        'token_tracking',
-        'actif',
-        'ignorer_bots',
-        'ignorer_dnt',
+        'name',
+        'domain',
+        'tracking_token',
+        'is_active',
+        'ignore_bots',
+        'ignore_dnt',
     ];
 
     protected $casts = [
-        'actif' => 'boolean',
-        'ignorer_bots' => 'boolean',
-        'ignorer_dnt' => 'boolean',
+        'is_active' => 'boolean',
+        'ignore_bots' => 'boolean',
+        'ignore_dnt' => 'boolean',
     ];
 
     protected static function boot(): void
     {
         parent::boot();
 
-        static::creating(function (Site $site) {
-            if (empty($site->token_tracking)) {
-                $site->token_tracking = hash('sha256', Str::random(40));
+        static::creating(function (Site $site): void {
+            if (empty($site->tracking_token)) {
+                $site->tracking_token = hash('sha256', Str::random(40));
             }
         });
     }
 
-    public function visites(): HasMany
+    public function visits(): HasMany
     {
-        return $this->hasMany(Visite::class, 'site_id');
+        return $this->hasMany(Visit::class, 'site_id');
     }
 
-    public function evenements(): HasMany
+    public function events(): HasMany
     {
-        return $this->hasMany(Evenement::class, 'site_id');
+        return $this->hasMany(Event::class, 'site_id');
     }
 
-    public function scopeActifs($query)
+    public function scopeActive(Builder $query): Builder
     {
-        return $query->where('actif', true);
+        return $query->where('is_active', true);
     }
 
-    public function getScriptTracking(): string
+    public function getTrackingScript(): string
     {
         $url = rtrim(config('app.url'), '/');
-        $token = $this->token_tracking;
+        $token = $this->tracking_token;
 
-        return '<script defer src="'.
-            $url.
-            '/tracker.js" data-token="'.
-            $token.
-            '"></script>';
+        return '<script defer src="'.$url.'/tracker.js" data-token="'.$token.'"></script>';
     }
 }

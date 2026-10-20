@@ -1,28 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Evenement extends Model
+class Event extends Model
 {
     public $timestamps = false;
 
     protected $fillable = [
         'site_id',
-        'visite_id',
+        'visit_id',
         'session_id',
         'type',
-        'nom',
-        'donnees',
-        'chemin',
-        'cree_le',
+        'name',
+        'data',
+        'path',
+        'created_at',
     ];
 
     protected $casts = [
-        'donnees' => 'array',
-        'cree_le' => 'datetime',
+        'data' => 'array',
+        'created_at' => 'datetime',
     ];
 
     public function site(): BelongsTo
@@ -30,8 +32,8 @@ class Evenement extends Model
         return $this->belongsTo(Site::class, 'site_id');
     }
 
-    public function visite(): BelongsTo
+    public function visit(): BelongsTo
     {
-        return $this->belongsTo(Visite::class, 'visite_id');
+        return $this->belongsTo(Visit::class, 'visit_id');
     }
 }
