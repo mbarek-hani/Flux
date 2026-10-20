@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Plugins;
 
-use App\Plugins\Data\HookDefinition;
 use App\Plugins\Contracts\FiltersData;
 use App\Plugins\Contracts\Plugin;
 use App\Plugins\Contracts\RegistersHooks;
+use App\Plugins\Data\HookDefinition;
 use Illuminate\Support\Facades\Log;
 
 final class HookRegistry

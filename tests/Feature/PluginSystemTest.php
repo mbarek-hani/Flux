@@ -6,6 +6,8 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Plugins\Data\PluginStatus;
+use App\Plugins\HookRegistry;
+use App\Plugins\ManifestReader;
 use App\Plugins\PluginAutoloader;
 use App\Plugins\PluginDiscovery;
 use App\Plugins\PluginManager;
@@ -224,11 +226,11 @@ PHP);
         return new PluginManager(
             new PluginDiscovery(
                 new PluginAutoloader,
-                app(\App\Plugins\ManifestReader::class),
+                app(ManifestReader::class),
                 base_path('plugins'),
                 base_path('bootstrap/cache/plugins-test.php'),
             ),
-            new \App\Plugins\HookRegistry,
+            new HookRegistry,
             app(PluginStateRepository::class),
         );
     }

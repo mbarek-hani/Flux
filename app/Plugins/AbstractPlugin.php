@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
-abstract class AbstractPlugin implements Plugin, RegistersHooks, FiltersData, FiltersTracking, ProvidesTabs, ProvidesNavigation, ProvidesSettings, ProvidesAssets, RegistersListeners, AddsTrackerScript
+abstract class AbstractPlugin implements AddsTrackerScript, FiltersData, FiltersTracking, Plugin, ProvidesAssets, ProvidesNavigation, ProvidesSettings, ProvidesTabs, RegistersHooks, RegistersListeners
 {
     private ?PluginManifest $manifestCache = null;
 
@@ -152,7 +152,7 @@ abstract class AbstractPlugin implements Plugin, RegistersHooks, FiltersData, Fi
      */
     public function tabs(): array
     {
-        return [];
+        return $this->manifest()->tabs;
     }
 
     /**
@@ -160,7 +160,7 @@ abstract class AbstractPlugin implements Plugin, RegistersHooks, FiltersData, Fi
      */
     public function navigation(): array
     {
-        return [];
+        return $this->manifest()->navigation;
     }
 
     /**
@@ -168,7 +168,7 @@ abstract class AbstractPlugin implements Plugin, RegistersHooks, FiltersData, Fi
      */
     public function settings(): array
     {
-        return [];
+        return $this->manifest()->settings;
     }
 
     /**

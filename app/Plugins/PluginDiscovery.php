@@ -6,7 +6,6 @@ namespace App\Plugins;
 
 use App\Plugins\Contracts\Plugin;
 use App\Plugins\Data\DiscoveredPlugin;
-use App\Plugins\Data\PluginManifest;
 use Illuminate\Support\Facades\Log;
 
 final class PluginDiscovery

@@ -125,7 +125,6 @@ final readonly class PluginManifest
     }
 
     /**
-     * @param  mixed  $value
      * @return list<array<string, mixed>>
      */
     private static function arrayOfArrays(mixed $value): array

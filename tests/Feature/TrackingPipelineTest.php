@@ -10,6 +10,7 @@ use App\Events\PluginEnabled;
 use App\Events\VisitRecorded;
 use App\Models\Site;
 use App\Plugins\AbstractPlugin;
+use App\Plugins\Contracts\Plugin;
 use App\Plugins\PluginManager;
 use App\Services\TrackingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -291,7 +292,7 @@ PHP);
     }
 
     /**
-     * @param  array<string, \App\Plugins\Contracts\Plugin>  $plugins
+     * @param  array<string, Plugin>  $plugins
      */
     private function injectActivePlugins(array $plugins): void
     {
