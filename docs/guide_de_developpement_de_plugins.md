@@ -1,406 +1,453 @@
-# Guide de Développement de Plugins Flux
+# Flux Plugin Development Guide
 
-> **Version Flux** : Laravel 13 · Alpine.js · Vanilla CSS (BEM)
-> **Objectif** : Étendre les fonctionnalités de Flux sans modifier son code source (*core*).
+> **Stack**: Laravel 13 · PHP 8.3 · Alpine.js · Vanilla CSS (BEM)  
+> **Goal**: extend Flux without modifying its core.
 
-Flux repose sur une architecture modulaire robuste. Le **core** gère le tracking, l'authentification et l'interface principale, tandis que toutes les fonctionnalités spécifiques ou expérimentales peuvent être implémentées via des **plugins**.
-
----
-
-## Table des matières
-
-> 🎨 **Vous cherchez comment styliser votre plugin ?** Consultez le [Guide UI, Design & Styles](guide_ui_design_styles.md).
-
-1. [Démarrage Rapide](#1-️-démarrage-rapide)
-2. [Architecture d'un Plugin](#2--architecture-dun-plugin)
-3. [Le fichier `manifest.json`](#3-️-le-fichier-manifestjson)
-4. [La Classe Principale (Core API)](#4--la-classe-principale-core-api)
-5. [Étendre l'Interface Utilisateur (UI)](#5--étendre-linterface-utilisateur-ui)
-6. [Manipuler le Tracking et les Données](#6--manipuler-le-tracking-et-les-données)
-7. [Base de Données et Métadonnées](#7--base-de-données-et-métadonnées)
-8. [Composants UI Disponibles](#8--composants-ui-disponibles)
-9. [Cycle de Vie d'un Plugin](#9--cycle-de-vie-dun-plugin)
+Plugins are self-contained packages stored in `plugins/`. Flux discovers them lazily from their `manifest.json`, then only instantiates the classes of enabled plugins.
 
 ---
 
-## 1. Démarrage Rapide
+## 1. Quick Start
 
-La méthode la plus simple pour démarrer le développement d'un plugin est d'utiliser l'interface en ligne de commande de Laravel (Artisan) incluse avec Flux.
-
-### Créer un nouveau plugin
-
-Ouvrez votre terminal à la racine du projet et tapez :
+Create a plugin skeleton:
 
 ```bash
-php artisan make:plugin MonPlugin
+php artisan make:plugin MyPlugin
 ```
 
-> [!TIP]
-> **Que fait cette commande ?**  
-> Elle génère l'arborescence complète dans `plugins/MonPlugin/`, incluant votre classe PHP `MonPlugin.php`, le fichier `manifest.json`, un fichier de routes `web.php` et les répertoires nécessaires (vues, migrations).
+This generates `plugins/MyPlugin/` with a manifest, a plugin class, routes, views, assets, and a migrations directory.
 
-### Activer le plugin
-
-1. Rendez-vous dans le tableau de bord Flux, section **Plugins**.
-2. Trouvez "MonPlugin" dans la liste et cliquez sur **Activer**.
-
-### Supprimer un plugin
-
-Si vous souhaitez désinstaller un plugin et purger ses fichiers du système, utilisez :
+Useful commands:
 
 ```bash
-php artisan remove:plugin MonPlugin
-```
-> [!WARNING]  
-> Cette action supprimera définitivement le code source de ce plugin.
-
-### Mettre en cache pour la production
-
-Pour optimiser les performances de démarrage en production, Flux compile la découverte des plugins en un fichier unique (`bootstrap/cache/plugins.php`) :
-
-```bash
+php artisan plugin:list
+php artisan plugin:validate
 php artisan plugin:cache
-```
-
-Pour invalider et recharger dynamiquement la découverte :
-
-```bash
 php artisan plugin:clear
+php artisan plugin:enable my-plugin
+php artisan plugin:disable my-plugin
+php artisan plugin:install my-plugin
+php artisan plugin:uninstall my-plugin
 ```
+
+Plugins can also be enabled and disabled from the **Plugins** page in the dashboard.
 
 ---
 
-## 2. Architecture d'un Plugin
-
-Une fois généré, un plugin possède une arborescence standardisée (conforme à la norme PSR-4 via un autoloader dynamique interne) avec chargement différé (*lazy-loading*) :
+## 2. Directory Structure
 
 ```text
 plugins/
-└── MonPlugin/                              ← PascalCase obligatoire
-    ├── manifest.json                       ← Fichier de déclaration
-    ├── src/                                ← Code source PHP
-    │   ├── MonPlugin.php                   ← Classe principale
-    │   ├── Http/Controllers/               ← (Optionnel) Contrôleurs
-    │   ├── Services/                       ← (Optionnel) Services
-    │   └── Models/                         ← (Optionnel) Modèles Eloquent
-    ├── vendor/                             ← (Optionnel) Dépendances Composer du plugin
-    │   └── autoload.php
-    ├── database/migrations/                ← (Optionnel) Migrations DB
+└── MyPlugin/                     ← PascalCase folder
+    ├── manifest.json             ← discovery metadata
+    ├── src/
+    │   └── MyPlugin.php          ← plugin class
+    ├── routes/
+    │   ├── web.php               ← optional web routes
+    │   └── api.php               ← optional API routes
     ├── resources/
-    │   ├── views/                          ← (Optionnel) Vues Blade
-    │   └── assets/                         ← (Optionnel) Fichiers statiques (CSS)
-    └── routes/
-        └── web.php                         ← (Optionnel) Fichier de routage
+    │   ├── views/                ← Blade views
+    │   └── assets/               ← published CSS/JS
+    └── database/
+        └── migrations/           ← plugin migrations
 ```
 
-> [!NOTE]
-> **Chargement différé (Lazy-loading) & Sécurité :**  
-> Flux sépare la phase de découverte (lecture des métadonnées du `manifest.json`) de la phase d'instanciation. Les classes PHP des plugins inactifs ne sont **jamais instanciées** lors du démarrage de l'application. Si un plugin utilise des dépendances Composer isolées (`plugins/MonPlugin/vendor/autoload.php`), celles-ci sont automatiquement prises en charge dès son instanciation.
+Inactive plugin classes are never instantiated. If the plugin ships Composer dependencies in `plugins/MyPlugin/vendor/autoload.php`, that autoloader is loaded when the plugin is instantiated.
 
 ---
 
-## 3. Le fichier `manifest.json`
-
-Le fichier `manifest.json` est la carte d'identité de votre plugin. Il est lu par Flux au démarrage pour "découvrir" votre plugin.
+## 3. Manifest
 
 ```json
 {
-    "identifiant": "mon-plugin",
-    "nom": "Mon Plugin",
+    "slug": "my-plugin",
+    "name": "My Plugin",
     "version": "1.0.0",
-    "description": "Ajoute des fonctionnalités d'analyse avancées.",
-    "auteur": "John Doe",
-    "licence": "MIT",
-    "classe": "Plugins\\MonPlugin\\MonPlugin",
+    "description": "Adds advanced analytics.",
+    "author": "John Doe",
+    "license": "MIT",
+    "class": "Plugins\\MyPlugin\\MyPlugin",
     "hooks": [
-        "tab.mon-plugin"
-    ]
+        { "name": "tab.my-plugin", "type": "render", "priority": 10 }
+    ],
+    "tabs": [
+        { "id": "my-plugin", "label": "My plugin", "icon": "chart-bar" }
+    ],
+    "navigation": [
+        {
+            "label": "My plugin",
+            "icon": "puzzle",
+            "children": [
+                { "label": "Reports", "route": "plugins.my-plugin.index" }
+            ]
+        }
+    ],
+    "settings": [
+        {
+            "key": "api_key",
+            "label": "API key",
+            "type": "password",
+            "required": true,
+            "help": "Used to call the external service."
+        }
+    ],
+    "routes": {
+        "web": {
+            "middleware": ["web", "auth"],
+            "prefix": "plugins/my-plugin",
+            "name": "plugins.my-plugin."
+        },
+        "api": {
+            "middleware": ["api"],
+            "prefix": "api/plugins/my-plugin",
+            "name": "api.plugins.my-plugin."
+        }
+    }
 }
 ```
 
-**Champs critiques :**
-- `identifiant` : Toujours en `kebab-case`. Doit être unique.
-- `classe` : Le namespace PHP de votre classe principale. L'autoloader l'utilise pour trouver `src/MonPlugin.php`.
+**Required fields:** `slug`, `name`, `version`, `class`.
+
+- `slug`: unique kebab-case identifier.
+- `class`: fully qualified class name, inside the `Plugins\` namespace.
+- `hooks`: visual render hooks and filters. Entries may be strings or objects.
+- `routes`: optional route configuration. Web routes default to `web` + `auth` middleware.
+
+The class namespace must start with `Plugins\`. For example, `Plugins\MyPlugin\MyPlugin` resolves to `plugins/MyPlugin/src/MyPlugin.php`.
 
 ---
 
-## 4. La Classe Principale (Core API)
+## 4. Plugin Class
 
-La classe principale de votre plugin (ex: `MonPlugin.php`) doit obligatoirement hériter de `App\Core\Plugin\AbstractPlugin`.
-
-L'héritage d'`AbstractPlugin` vous fournit gratuitement :
-- L'enregistrement automatique des **routes** (préfixe `plugins.mon-plugin.`).
-- L'enregistrement du **namespace de vues** (ex: `mon-plugin::ma-vue`).
-- La **publication des assets** vers le répertoire public de Laravel.
-- L'exécution de vos **migrations** lors de l'activation.
-
-### Structure Minimale
+Extend `App\Plugins\AbstractPlugin`:
 
 ```php
 <?php
 
-namespace Plugins\MonPlugin;
+declare(strict_types=1);
 
-use App\Core\Plugin\AbstractPlugin;
+namespace Plugins\MyPlugin;
 
-class MonPlugin extends AbstractPlugin
+use App\Plugins\AbstractPlugin;
+
+class MyPlugin extends AbstractPlugin
 {
-    public function getIdentifiant(): string { return 'mon-plugin'; }
-    public function getNom(): string { return 'Mon Plugin'; }
-    public function getVersion(): string { return '1.0.0'; }
+    public function slug(): string
+    {
+        return 'my-plugin';
+    }
+
+    public function name(): string
+    {
+        return 'My Plugin';
+    }
+
+    public function version(): string
+    {
+        return '1.0.0';
+    }
+}
+```
+
+`AbstractPlugin` provides:
+
+- route, view namespace, and listener registration in `register()`;
+- asset publishing in `enable()` and removal in `disable()`;
+- plugin migrations in `install()` and rollback in `uninstall()`;
+- hook, filter, tracking, UI, settings, and asset contracts with safe defaults;
+- configuration access through `$this->config('key', $default)`;
+- path resolution through `$this->path('routes/web.php')`.
+
+Override lifecycle methods only when you need custom behavior, and call the parent method first:
+
+```php
+public function enable(): void
+{
+    parent::enable();
+
+    // initialize plugin data
+}
+
+public function disable(): void
+{
+    parent::disable();
+
+    // pause background work
 }
 ```
 
 ---
 
-## 5. Étendre l'Interface Utilisateur (UI)
+## 5. UI Extensions
 
-Vous pouvez greffer des éléments visuels à Flux directement depuis votre classe principale.
-
-### 5.1 Ajouter un lien dans le menu de navigation
-
-Surchargez la méthode `getNavigationItems` :
+### Tabs
 
 ```php
-public function getNavigationItems(): array
+public function tabs(): array
 {
     return [
-        [
-            'label' => 'Analyse IA',
-            'icone' => 'cpu', // Icône Heroicons sans préfixe
-            'sous_menus' => [
-                [
-                    'label' => 'Historique des rapports',
-                    'route' => 'plugins.ai-analytics.historique.index', // La route définie dans votre web.php
-                ],
-            ],
-        ],
-    ];
-}
-
-> [!NOTE]
-> Il est fortement recommandé de regrouper vos liens dans un sous-menu portant le nom de votre plugin (comme l'exemple ci-dessus). Si un item possède des `sous_menus` et ne définit pas de `route` au niveau parent, le clic sur le menu parent déroulera simplement la liste des sous-menus !
-```
-
-### 5.2 Créer une page de réglages dédiée
-
-Chaque plugin bénéficie d'une section isolée dans la page "Réglages" de Flux. Déclarez vos champs :
-
-```php
-public function getReglages(): array
-{
-    return [
-        [
-            'cle'         => 'api_key',
-            'label'       => 'Clé API Externe',
-            'type'        => 'password',
-            'obligatoire' => true,
-            'aide'        => 'Nécessaire pour interroger le service tiers.',
-        ],
+        ['id' => 'my-plugin', 'label' => 'My plugin', 'icon' => 'chart-bar'],
     ];
 }
 ```
-*Pour récupérer cette valeur dans votre plugin, utilisez le helper interne : `$this->config('api_key')`.*
 
-### 5.3 Insérer du contenu via les Hooks visuels
-
-Les hooks permettent d'injecter du HTML sans modifier les fichiers Blade du Core.
-Flux expose notamment :
-- `tab.{id}` : Rendu du contenu d'un onglet dans le dashboard (où `{id}` correspond à l'identifiant déclaré via `getOnglets()`).
-- `dashboard.widgets` : Injection d'une carte/widget à la fin de la page principale "Vue d'ensemble" du dashboard.
+Render tab content from the `tab.{id}` hook:
 
 ```php
-// 1. Déclarer l'utilisation du hook
-public function getHooks(): array
+public function renderHook(string $hook, array $data = []): string
 {
-    return [
-        'tab.mon-plugin',
-        'dashboard.widgets'
-    ];
-}
-
-// 2. Rendre le contenu lorsqu'il est appelé
-public function rendrePourHook(string $hook, array $donnees = []): string
-{
-    if ($hook === 'tab.mon-plugin') {
-        return view('mon-plugin::tab', $donnees)->render();
+    if ($hook === 'tab.my-plugin') {
+        return view('my-plugin::tab', $data)->render();
     }
+
     return '';
 }
 ```
 
----
-
-## 6. Manipuler le Tracking et les Données
-
-La véritable puissance des plugins Flux réside dans la manipulation du pipeline de tracking.
-
-### 6.1 Modifier ou filtrer les données (Avant Enregistrement)
-
-Appelée à chaque requête de tracking entrante, `enrichirTracking` vous permet d'altérer les données brutes avant qu'elles ne soient écrites en base.
-Si vous retournez `null`, **le tracking est immédiatement annulé** et aucune donnée n'est enregistrée en base.
+### Navigation
 
 ```php
-public function enrichirTracking(array $donnees, $request): ?array
-{
-    // Filtrer les IPs internes en retournant null (annule le tracking)
-    if ($request->ip() === '127.0.0.1') {
-        return null; 
-    }
-
-    // Ajouter ou altérer des données
-    $donnees['titre'] = 'Custom: ' . ($donnees['titre'] ?? '');
-
-    return $donnees;
-}
-```
-
-### 6.2 Traitement Synchrone (Après Enregistrement)
-
-Pour des traitements légers et rapides (comme enregistrer une métadonnée liée à la visite), surchargez `apresVisite` ou `apresEvenement` :
-
-```php
-public function apresVisite($visite, array $donnees, $request): void
-{
-    if (($donnees['utm_source'] ?? '') === 'newsletter') {
-        \App\Models\PluginMetadonnee::enregistrer(
-            visiteId: $visite->id,
-            plugin:   $this->getIdentifiant(),
-            cle:      'campagne_speciale',
-            valeur:   true
-        );
-    }
-}
-```
-
-### 6.3 Événements Laravel & Files d'attente Asynchrones (Recommandé pour les tâches lourdes)
-
-Pour des tâches exigeantes (envoi de webhooks, notifications, analyse IA externe), n'exécutez pas de code bloquant dans `apresVisite` !
-Flux déclenche des événements Laravel natifs :
-- `App\Events\VisiteEnregistree` : contient `$event->visite`, `$event->donnees` et `$event->metadonnees` (`ip`, `user_agent`, `referer`).
-- `App\Events\EvenementEnregistre` : contient `$event->evenement`, `$event->donnees` et `$event->metadonnees`.
-- `App\Events\PluginActive` / `App\Events\PluginDesactive` : déclenchés lors de l'activation/désactivation d'un plugin.
-
-Votre plugin peut déclarer ses écouteurs (y compris des listeners en file d'attente `ShouldQueue`) via la méthode `getEcouteurs()` :
-
-```php
-use App\Events\VisiteEnregistree;
-use Plugins\MonPlugin\Listeners\EnvoyerNotificationDiscord;
-
-public function getEcouteurs(): array
+public function navigation(): array
 {
     return [
-        VisiteEnregistree::class => [
-            EnvoyerNotificationDiscord::class, // Implémente ShouldQueue pour être exécuté en arrière-plan
+        [
+            'label' => 'My plugin',
+            'icon' => 'puzzle',
+            'children' => [
+                ['label' => 'Reports', 'route' => 'plugins.my-plugin.index'],
+            ],
+        ],
+        [
+            'label' => 'Overview',
+            'icon' => 'chart-bar',
+            'route' => 'plugins.my-plugin.index',
         ],
     ];
 }
 ```
 
-### 6.4 Injecter du JavaScript dans le Tracker Client
-
-Le fichier `tracker.js` est servi à vos clients. Vous pouvez y injecter des scripts additionnels.
+### Settings
 
 ```php
-public function getTrackerJavaScript(): ?string
+public function settings(): array
+{
+    return [
+        [
+            'key' => 'api_key',
+            'label' => 'API key',
+            'type' => 'password',
+            'required' => true,
+            'help' => 'Used to call the external service.',
+        ],
+    ];
+}
+```
+
+Read a value with `$this->config('api_key', 'default')`.
+
+### Visual Hooks
+
+Declare a hook in the manifest and render it from the plugin:
+
+```php
+public function renderHook(string $hook, array $data = []): string
+{
+    return view('my-plugin::widgets.summary', $data)->render();
+}
+```
+
+In Blade:
+
+```blade
+@hook('dashboard.widgets')
+```
+
+### Data Filters
+
+```php
+public function filterData(string $name, mixed $value, array $context = []): mixed
+{
+    if ($name === 'dashboard.title') {
+        return strtoupper((string) $value);
+    }
+
+    return $value;
+}
+```
+
+In Blade:
+
+```blade
+@filter('dashboard.title', $title)
+```
+
+---
+
+## 6. Tracking Filters
+
+The old `enrichTracking`, `afterVisit`, and `afterEvent` methods are gone. Plugins now use explicit filters and Laravel events.
+
+### Filter a Visit
+
+```php
+use Illuminate\Http\Request;
+
+public function filterVisit(array $data, Request $request): ?array
+{
+    if ($request->ip() === '127.0.0.1') {
+        return null; // cancel tracking
+    }
+
+    $data['title'] = 'Custom: '.($data['title'] ?? '');
+
+    return $data;
+}
+```
+
+### Filter an Event
+
+```php
+public function filterEvent(array $data, Request $request): ?array
+{
+    if (($data['name'] ?? '') === 'blocked_event') {
+        return null; // cancel tracking
+    }
+
+    return $data;
+}
+```
+
+Returning `null` from either filter cancels persistence for that request.
+
+### React After Persistence
+
+Post-tracking behavior uses Laravel events only:
+
+- `App\Events\VisitRecorded`: `$event->visit`, `$event->data`, `$event->metadata`.
+- `App\Events\EventRecorded`: `$event->event`, `$event->data`, `$event->metadata`.
+- `App\Events\PluginEnabled` and `App\Events\PluginDisabled`: `$event->slug`.
+
+Declare listeners from the plugin:
+
+```php
+use App\Events\VisitRecorded;
+use Plugins\MyPlugin\Listeners\SendDiscordNotification;
+
+public function listeners(): array
+{
+    return [
+        VisitRecorded::class => [
+            SendDiscordNotification::class, // implement ShouldQueue for heavy work
+        ],
+    ];
+}
+```
+
+### Inject Tracker JavaScript
+
+```php
+public function trackerScript(): ?string
 {
     return <<<'JS'
-    // Exemple : suivre la profondeur de scroll
     window.addEventListener('scroll', function () {
-        // Logique de tracking client...
-        envoyer({
-            token: token,
-            type: 'evenement',
-            nom: 'scroll',
-            donnees: { /* ... */ }
-        });
+        // client-side tracking logic
     });
     JS;
 }
 ```
 
+The script is appended to `/tracker.js` after the core tracker.
+
 ---
 
-## 7. Base de Données et Métadonnées
+## 7. Database and Visit Metadata
 
-### Tables personnalisées
+Plugin migrations in `plugins/MyPlugin/database/migrations/` run when the plugin is installed or enabled. Flux records them in the `plugin_migrations` table and rolls them back on uninstall.
 
-Si vous placez des fichiers Laravel Migrations dans `plugins/MonPlugin/database/migrations/`, elles seront exécutées lors du clic sur le bouton **Activer**.
-> [!NOTE]
-> Convention : Préfixez toujours vos tables avec l'identifiant du plugin (ex: `mon_plugin_logs`) pour éviter tout conflit avec le Core.
+Prefix custom tables with the plugin slug:
 
-### Les Métadonnées de Visite
+```text
+my_plugin_logs
+```
 
-Si vous souhaitez lier une petite information spécifique à une Visite existante sans créer de nouvelle table, utilisez le modèle `PluginMetadonnee` fourni par le Core :
+To attach small values to a visit without creating a table, use `App\Models\VisitMetadata`:
 
 ```php
-use App\Models\PluginMetadonnee;
+use App\Models\VisitMetadata;
 
-// Sauvegarder la métadonnée
-PluginMetadonnee::enregistrer(
-    visiteId: $visite->id,
-    plugin:   $this->getIdentifiant(),
-    cle:      'score_engagement',
-    valeur:   85
-);
+VisitMetadata::create([
+    'visit_id' => $visit->id,
+    'plugin' => $this->slug(),
+    'key' => 'engagement_score',
+    'value' => '85',
+]);
 ```
 
 ---
 
-## 8. Interface Utilisateur & Design System
+## 8. Assets, Routes, and Views
 
-Flux utilise **Vanilla CSS avec la méthodologie BEM** et **Alpine.js** pour l'interactivité (aucun framework CSS lourd comme Tailwind). 
+- Routes are registered automatically from `routes/web.php` and `routes/api.php`.
+- Web route names default to `plugins.{slug}.`.
+- API route names default to `api.plugins.{slug}.`.
+- Views are available under the plugin namespace: `my-plugin::index`.
+- Files in `resources/assets/` are published to `public/plugin-assets/{slug}/`.
+- Declare extra assets:
 
-Pour que votre plugin s'intègre parfaitement au design de Flux et supporte le mode sombre natif, lisez impérativement le **[Guide UI, Design & Styles](guide_ui_design_styles.md)**.
+```php
+public function stylesheets(): array
+{
+    return ['plugin-assets/my-plugin/style.css'];
+}
 
-Utilisez toujours les composants Blade prêts à l'emploi du Core :
+public function scripts(): array
+{
+    return ['plugin-assets/my-plugin/plugin.js'];
+}
+```
 
-| Composant | Utilisation |
+---
+
+## 9. Lifecycle and Safe Mode
+
+Plugin status is stored in the `plugins` table:
+
+- `discovered`: manifest found, class not loaded.
+- `installed`: migrations completed.
+- `enabled`: registered and active.
+- `disabled`: explicitly disabled.
+- `failed`: registration or activation failed; the plugin is disabled and the error is stored in `last_error`.
+
+A broken plugin cannot crash the application. Registration failures are caught, logged, and persisted as `failed`. Use `php artisan plugin:list` to inspect status.
+
+Install and enable:
+
+```bash
+php artisan plugin:install my-plugin
+```
+
+Uninstall and roll back its migrations:
+
+```bash
+php artisan plugin:uninstall my-plugin
+```
+
+---
+
+## 10. UI Components
+
+Flux uses **Vanilla CSS with BEM** and **Alpine.js**. For visual consistency and dark mode support, read the [UI, Design & Styles Guide](guide_ui_design_styles.md).
+
+Common Blade components:
+
+| Component | Usage |
 |---|---|
-| **Carte** | `<x-card titre="Statistiques"> Contenu... </x-card>` |
-| **Bouton** | `<x-button variant="primary"> Valider </x-button>` |
-| **Icône** | `<x-custom-icon name="chart-bar" class="c-icon--md" />` |
-| **Input** | `<x-input name="email" label="Email" type="email" required />` |
-| **Alerte** | `<x-alert type="warning"> Attention </x-alert>` |
-
-> [!TIP]
-> **Fichiers CSS personnalisés :** Placez vos styles additionnels dans `plugins/MonPlugin/resources/assets/style.css`. Flux charge automatiquement les assets publiés des plugins actifs !
+| Card | `<x-card titre="Statistics">...</x-card>` |
+| Button | `<x-button variant="primary">Save</x-button>` |
+| Icon | `<x-custom-icon name="chart-bar" class="c-icon--md" />` |
+| Input | `<x-input name="email" label="Email" type="email" required />` |
+| Alert | `<x-alert type="warning">Warning</x-alert>` |
 
 ---
 
-## 9. Cycle de Vie d'un Plugin
-
-Afin de gérer des états complexes (création de données initiales, suppression de tables), vous pouvez surcharger les méthodes du cycle de vie depuis votre classe principale.
-
-```php
-/**
- * Exécutée lors du clic sur "Activer".
- */
-public function activer(): void
-{
-    parent::activer(); // Essentiel : exécute les migrations et publie les assets CSS/JS
-    // Votre code d'initialisation (ex: insérer des réglages par défaut)
-}
-
-/**
- * Exécutée lors du clic sur "Désactiver".
- */
-public function desactiver(): void
-{
-    parent::desactiver();
-    // Votre code de mise en pause (ex: vider le cache du plugin)
-}
-
-/**
- * Exécutée lors de la suppression du plugin.
- */
-public function desinstaller(): void
-{
-    parent::desinstaller(); // Essentiel : supprime les assets publiés
-    // Votre code de nettoyage (ex: Optionnel, Drop de vos tables personnalisées)
-}
-```
-
----
-
-**Bon développement avec Flux !**
+**Happy building with Flux!**
