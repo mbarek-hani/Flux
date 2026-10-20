@@ -1,5 +1,5 @@
 <x-app-layout>
-    <x-slot name="titre">
+    <x-slot name="title">
         Détails du Plugin : {{ $details['name'] }}
     </x-slot>
 
@@ -36,13 +36,13 @@
 
             <div class="p-grid p-grid--3 u-items-start">
                 <div class="p-col-span-2 p-stack">
-                    <x-card titre="Description">
+                    <x-card title="Description">
                         <p class="p-text--muted u-leading-relaxed">
                             {{ $details['description'] }}
                         </p>
                     </x-card>
 
-                    <x-card titre="Fonctionnalités intégrées">
+                    <x-card title="Fonctionnalités intégrées">
                         @if(empty($details['tabs']) && empty($details['hooks']) && empty($details['navigation']) && empty($details['settings']))
                             <p class="p-text u-italic">Ce plugin n'expose aucune fonctionnalité
                                 d'interface utilisateur standard.</p>
@@ -107,7 +107,7 @@
                 </div>
 
                 <div class="p-stack">
-                    <x-card titre="Métadonnées">
+                    <x-card title="Métadonnées">
                         <div class="p-stack--sm p-text">
                             <div class="p-row p-row--between p-info-row">
                                 <span class="p-info-label">Statut</span>

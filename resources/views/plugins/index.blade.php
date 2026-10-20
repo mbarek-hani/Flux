@@ -1,5 +1,5 @@
 <x-app-layout>
-    <x-slot name="titre">
+    <x-slot name="title">
         Plugins
     </x-slot>
     <div class="p-page">

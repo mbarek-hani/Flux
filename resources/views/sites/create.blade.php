@@ -1,5 +1,5 @@
 <x-app-layout>
-    <x-slot name="titre">
+    <x-slot name="title">
         Ajouter un site
     </x-slot>
     <div class="p-page">

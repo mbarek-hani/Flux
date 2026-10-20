@@ -1,5 +1,5 @@
 <x-app-layout>
-    <x-slot name="titre">
+    <x-slot name="title">
         Détails du Plugin - {{ $plugin['nom'] }}
     </x-slot>
 

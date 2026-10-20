@@ -1,7 +1,7 @@
 @props([
-    'titre' => '',
-    'valeur' => '0',
-    'icon'  => null,
+    'title' => '',
+    'value' => '0',
+    'icon' => null,
 ])
 
 <div class="c-stats-card">
@@ -12,14 +12,8 @@
             </div>
         @endif
         <div class="c-stats-card__info">
-            <p class="c-stats-card__title">{{ $titre }}</p>
-            <p class="c-stats-card__value">
-                @if($valeur instanceof \Illuminate\View\ComponentSlot)
-                    {{ $valeur }}
-                @else
-                    {{ $valeur }}
-                @endif
-            </p>
+            <p class="c-stats-card__title">{{ $title }}</p>
+            <p class="c-stats-card__value">{{ $value }}</p>
         </div>
     </div>
 </div>

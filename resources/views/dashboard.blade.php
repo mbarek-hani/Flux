@@ -1,5 +1,5 @@
 <x-app-layout>
-    <x-slot name="titre">
+    <x-slot name="title">
         Tableau de bord
     </x-slot>
 
@@ -98,29 +98,29 @@
                         {{-- ══════ VUE D'ENSEMBLE ══════ --}}
                         <div x-show="ongletActif === 'apercu'" x-cloak>
                             <div class="p-grid p-grid--2 p-grid--4 p-mb-3">
-                                <x-stats-card titre="Visiteurs uniques" icon="users">
-                                    <x-slot:valeur>
+                                <x-stats-card title="Visiteurs uniques" icon="users">
+                                    <x-slot:value>
                                         <span x-text="stats?.summary?.unique_visitors ?? 0"></span>
-                                    </x-slot:valeur>
+                                    </x-slot:value>
                                 </x-stats-card>
-                                <x-stats-card titre="Pages vues" icon="eye">
-                                    <x-slot:valeur>
+                                <x-stats-card title="Pages vues" icon="eye">
+                                    <x-slot:value>
                                         <span x-text="stats?.summary?.page_views ?? 0"></span>
-                                    </x-slot:valeur>
+                                    </x-slot:value>
                                 </x-stats-card>
-                                <x-stats-card titre="Taux de rebond" icon="arrow-trending-down">
-                                    <x-slot:valeur>
+                                <x-stats-card title="Taux de rebond" icon="arrow-trending-down">
+                                    <x-slot:value>
                                         <span x-text="(stats?.summary?.bounce_rate ?? 0) + '%'"></span>
-                                    </x-slot:valeur>
+                                    </x-slot:value>
                                 </x-stats-card>
-                                <x-stats-card titre="Durée moyenne" icon="clock">
-                                    <x-slot:valeur>
+                                <x-stats-card title="Durée moyenne" icon="clock">
+                                    <x-slot:value>
                                         <span x-text="formaterDuree(stats?.summary?.average_duration ?? 0)"></span>
-                                    </x-slot:valeur>
+                                    </x-slot:value>
                                 </x-stats-card>
                             </div>
 
-                            <x-card titre="Évolution du trafic" class="p-mb-3">
+                            <x-card title="Évolution du trafic" class="p-mb-3">
                                 <div class="p-dash__chart">
                                     <canvas x-ref="graphique"></canvas>
                                 </div>
@@ -128,7 +128,7 @@
 
                             <div class="p-dash__grid-2">
 
-                                <x-card titre="Pages populaires" :padding="false">
+                                <x-card title="Pages populaires" :padding="false">
                                     <table class="p-dash__table">
                                         <thead>
                                             <tr>
@@ -153,7 +153,7 @@
                                     </table>
                                 </x-card>
 
-                                <x-card titre="Sources de trafic" :padding="false">
+                                <x-card title="Sources de trafic" :padding="false">
                                     <table class="p-dash__table">
                                         <thead>
                                             <tr>
@@ -186,11 +186,11 @@
                                     </table>
                                 </x-card>
 
-                                <x-card titre="Pays">
+                                <x-card title="Pays">
                                     <div x-ref="cartePays" style="width: 100%; height: 250px;"></div>
                                 </x-card>
 
-                                <x-card titre="Appareils">
+                                <x-card title="Appareils">
                                     <div class="p-dash__devices">
                                         <div class="p-dash__devices-chart">
                                             <canvas x-ref="graphiqueAppareils"></canvas>
@@ -208,7 +208,7 @@
                             </div>
 
                             <div class="p-dash__grid-2 p-mt-3">
-                                <x-card titre="Systèmes & Navigateurs" :padding="false">
+                                <x-card title="Systèmes & Navigateurs" :padding="false">
                                     <div class="p-grid p-grid--2" style="gap: 0;">
                                         <div style="border-right: 1px solid var(--gray-200);">
                                             <table class="p-dash__table">
@@ -283,7 +283,7 @@
                                     </div>
                                 </x-card>
 
-                                <x-card titre="Campagnes Marketing (UTM)" :padding="false">
+                                <x-card title="Campagnes Marketing (UTM)" :padding="false">
                                     <div x-data="{ ongletUtm: 'source' }">
                                         <div class="p-dash__tabs p-px-3 p-pt-2"
                                             style="border-bottom: 1px solid var(--gray-200); margin-bottom: 0;">
@@ -393,30 +393,30 @@
                         <div x-show="ongletActif === 'evenements'" x-cloak>
                             {{-- Cartes de statistiques --}}
                             <div class="p-grid p-grid--2 p-grid--4 p-mb-3">
-                                <x-stats-card titre="Total événements" icon="cursor-click">
-                                    <x-slot:valeur>
+                                <x-stats-card title="Total événements" icon="cursor-click">
+                                    <x-slot:value>
                                         <span x-text="totalEvenements()"></span>
-                                    </x-slot:valeur>
+                                    </x-slot:value>
                                 </x-stats-card>
-                                <x-stats-card titre="Événements / Session" icon="arrows-right-left">
-                                    <x-slot:valeur>
+                                <x-stats-card title="Événements / Session" icon="arrows-right-left">
+                                    <x-slot:value>
                                         <span x-text="moyenneEvtParSession()"></span>
-                                    </x-slot:valeur>
+                                    </x-slot:value>
                                 </x-stats-card>
-                                <x-stats-card titre="Types différents" icon="tag">
-                                    <x-slot:valeur>
+                                <x-stats-card title="Types différents" icon="tag">
+                                    <x-slot:value>
                                         <span x-text="stats?.events_by_name?.length ?? 0"></span>
-                                    </x-slot:valeur>
+                                    </x-slot:value>
                                 </x-stats-card>
-                                <x-stats-card titre="Sessions actives" icon="users">
-                                    <x-slot:valeur>
+                                <x-stats-card title="Sessions actives" icon="users">
+                                    <x-slot:value>
                                         <span x-text="totalSessionsEvenements()"></span>
-                                    </x-slot:valeur>
+                                    </x-slot:value>
                                 </x-stats-card>
                             </div>
 
                             {{-- Graphique d'activité Temporelle --}}
-                            <x-card titre="Activité des événements" class="p-mb-3">
+                            <x-card title="Activité des événements" class="p-mb-3">
                                 <div class="p-dash__chart--tall">
                                     <canvas x-ref="graphiqueEvenements"></canvas>
                                 </div>
@@ -424,7 +424,7 @@
 
                             <div class="p-dash__grid-2">
                                 {{-- Répartition par nom + Graphique Doughnut --}}
-                                <x-card titre="Répartition des types">
+                                <x-card title="Répartition des types">
                                     <div class="p-dash__distribution">
                                         <div class="p-dash__distribution-chart">
                                             <canvas x-ref="graphiqueEvtRepart"></canvas>
@@ -455,7 +455,7 @@
                                 </x-card>
 
                                 {{-- Top des pages où se produisent les événements --}}
-                                <x-card titre="Pages les plus interactives" :padding="false">
+                                <x-card title="Pages les plus interactives" :padding="false">
                                     <table class="p-dash__table">
                                         <thead>
                                             <tr class="p-dash__table-header--tinted">
@@ -482,7 +482,7 @@
                                 </x-card>
 
                                 {{-- Journal des derniers événements --}}
-                                <x-card titre="Dernière activité" :padding="false" class="p-dash__col-span-2">
+                                <x-card title="Dernière activité" :padding="false" class="p-dash__col-span-2">
                                     <table class="p-dash__table">
                                         <thead>
                                             <tr class="p-dash__table-header--tinted">

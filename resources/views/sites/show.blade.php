@@ -1,5 +1,5 @@
 <x-app-layout>
-    <x-slot name="titre">
+    <x-slot name="title">
         Site : {{ $site->name }}
     </x-slot>
     <div class="p-page">
@@ -12,7 +12,7 @@
             </div>
 
             {{-- Infos du site --}}
-            <x-card titre="Informations">
+            <x-card title="Informations">
                 <div class="p-grid p-grid--2 p-grid--gap-md" style="font-size: 0.875rem;">
                     <div>
                         <span class="p-info-label">Domaine</span>
@@ -36,7 +36,7 @@
             </x-card>
 
             {{-- Script de tracking --}}
-            <x-card titre="Script de tracking">
+            <x-card title="Script de tracking">
                 <p class="p-text p-mb-3">
                     Copiez ce code et collez-le juste avant la balise <code
                         class="p-code">&lt;/head&gt;</code> de votre site.

@@ -54,7 +54,7 @@ class MakePluginCommand extends Command
 
         File::put($path.'/routes/web.php', "<?php\n\nuse Illuminate\\Support\\Facades\\Route;\n\nRoute::get('/', fn () => view('{$slug}::index'))->name('index');\n");
         File::put($path.'/routes/api.php', "<?php\n\nuse Illuminate\\Support\\Facades\\Route;\n\nRoute::get('/', fn () => response()->json(['plugin' => '{$slug}']));\n");
-        File::put($path.'/resources/views/index.blade.php', "<x-app-layout>\n    <x-slot name=\"titre\">".Str::headline($name)."</x-slot>\n\n    <div class=\"p-page\">\n        <div class=\"p-container\">\n            <h2 class=\"p-page__title\">".Str::headline($name)."</h2>\n        </div>\n    </div>\n</x-app-layout>\n");
+        File::put($path.'/resources/views/index.blade.php', "<x-app-layout>\n    <x-slot name=\"title\">".Str::headline($name)."</x-slot>\n\n    <div class=\"p-page\">\n        <div class=\"p-container\">\n            <h2 class=\"p-page__title\">".Str::headline($name)."</h2>\n        </div>\n    </div>\n</x-app-layout>\n");
         File::put($path.'/resources/assets/style.css', '');
         File::put($path.'/resources/assets/plugin.js', '');
 

@@ -1,12 +1,12 @@
 @props([
-    'titre' => null,
+    'title' => null,
     'padding' => true,
 ])
 
 <div {{ $attributes->merge(['class' => 'c-card']) }}>
-    @if($titre)
+    @if($title)
         <div class="c-card__header">
-            <h3 class="c-card__title">{{ $titre }}</h3>
+            <h3 class="c-card__title">{{ $title }}</h3>
         </div>
     @endif
 
