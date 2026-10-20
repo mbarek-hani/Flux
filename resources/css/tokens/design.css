@@ -46,19 +46,43 @@
         --z-modal: 50;
         --z-alert: 100;
 
-        /* Charts and maps */
-        --chart-1: #10b981;
-        --chart-2: #3b82f6;
-        --chart-3: #f59e0b;
-        --chart-4: #ef4444;
-        --chart-5: #8b5cf6;
+        /* Charts */
+        --chart-1: #6366f1;
+        --chart-2: #8b5cf6;
+        --chart-3: #ec4899;
+        --chart-4: #f59e0b;
+        --chart-5: #10b981;
         --chart-6: #06b6d4;
-        --chart-7: #ec4899;
+        --chart-7: #ef4444;
         --chart-8: #84cc16;
+        --chart-border: #ffffff;
         --chart-grid: rgba(107, 114, 128, 0.2);
-        --map-background: #f3f4f6;
-        --map-region: #d1d5db;
-        --map-region-hover: #a7f3d0;
+        --chart-traffic-1: #ff7711;
+        --chart-traffic-2: #9933ff;
+        --chart-traffic-fill-1: rgba(55, 65, 81, 0.05);
+        --chart-traffic-fill-2: rgba(156, 163, 175, 0.05);
+        --chart-events: #6366f1;
+        --chart-events-fill: rgba(99, 102, 241, 0.1);
+        --chart-device-1: #ffaabb;
+        --chart-device-2: #aaffbb;
+        --chart-device-3: #aabbff;
+        --chart-device-4: #666666;
+
+        /* Maps */
+        --map-background: transparent;
+        --map-region: #e5e7eb;
+        --map-region-stroke: #ffffff;
+        --map-region-hover: #34d399;
+        --map-scale-start: #a7f3d0;
+        --map-scale-end: #047857;
         --map-marker: #10b981;
+    }
+
+    [data-theme='dark'] {
+        --map-region: #374151;
+        --map-region-stroke: #1f2937;
+        --map-region-hover: #10b981;
+        --map-scale-start: #065f46;
+        --map-scale-end: #34d399;
     }
 }

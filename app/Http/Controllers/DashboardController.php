@@ -18,16 +18,39 @@ class DashboardController extends Controller
     {
         $sites = Site::query()->active()->latest()->get();
         $currentSite = $sites->first();
+        $title = $plugins->filter('dashboard.title', 'Dashboard');
+        $tabs = $plugins->filter('dashboard.tabs', $plugins->tabs());
 
-        if ($currentSite === null) {
-            return view('dashboard', ['noSite' => true]);
+        if (! is_string($title)) {
+            $title = 'Dashboard';
         }
 
-        return view('dashboard', [
+        if (! is_array($tabs)) {
+            $tabs = [];
+        }
+
+        $tabs = array_values(array_filter($tabs, static fn (mixed $tab): bool => is_array($tab)
+            && isset($tab['id'], $tab['label'], $tab['icon'])
+            && is_string($tab['id'])
+            && is_string($tab['label'])
+            && is_string($tab['icon'])));
+
+        if ($currentSite === null) {
+            return view('dashboard.index', [
+                'title' => $title,
+                'noSite' => true,
+                'tabs' => [],
+                'toolbar' => [],
+            ]);
+        }
+
+        return view('dashboard.index', [
             'sites' => $sites,
             'currentSite' => $currentSite,
             'noSite' => false,
-            'tabs' => $plugins->tabs(),
+            'title' => $title,
+            'tabs' => $tabs,
+            'toolbar' => $plugins->renderHook('dashboard.toolbar'),
             'settings' => $plugins->settings(),
         ]);
     }

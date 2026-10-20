@@ -13,6 +13,7 @@ import { closeModal, initModals, openModal, setupModalGlobalListeners } from './
 import { initSidebar } from './components/sidebar';
 import { initTabs } from './components/tabs';
 import { initThemeSwitchers } from './components/theme-switcher';
+import { initDashboard } from './pages/dashboard';
 import { isReady, markReady, onReady } from './core/ready';
 import { currentTheme, setTheme } from './core/theme';
 
@@ -31,6 +32,7 @@ export function initComponents(root = document) {
     initSidebar(root);
     initTabs(root);
     initThemeSwitchers(root);
+    initDashboard(root);
 }
 
 function boot() {
