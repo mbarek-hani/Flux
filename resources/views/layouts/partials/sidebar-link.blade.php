@@ -1,4 +1,4 @@
-@props(['route', 'label'=>'', 'icon', 'hover' => ''])
+@props(['route', 'label' => '', 'icon', 'hover' => ''])
 
 <a
     href="{{ route($route) }}"

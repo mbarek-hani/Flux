@@ -330,6 +330,13 @@
     color: var(--gray-900);
 }
 
+.l-topbar__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
 /* ═══════ SIDEBAR HEADER TOGGLE (desktop) ═══════ */
 
 .l-sidebar__toggle {
@@ -486,6 +493,28 @@
 
 .l-sidebar--collapsed .c-sidebar-link:hover .c-sidebar-link__tooltip {
     display: block;
+}
+
+@media (min-width: 1024px) {
+    html[data-sidebar-open='false'] .l-main-wrapper {
+        margin-left: 3rem;
+    }
+
+    html[data-sidebar-open='false'] [data-sidebar-expanded],
+    html[data-sidebar-open='true'] [data-sidebar-collapsed] {
+        display: none;
+    }
+
+    html[data-sidebar-open='false'] [data-sidebar-collapsed] {
+        display: flex;
+    }
+}
+
+@media (max-width: 1023px) {
+    html[data-sidebar-open='false'] [data-sidebar-expanded],
+    html[data-sidebar-open='false'] .l-app__overlay {
+        display: none;
+    }
 }
 
 }

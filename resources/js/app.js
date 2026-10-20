@@ -10,6 +10,7 @@ import { initCopyButtons } from './components/copy';
 import { initDropdowns } from './components/dropdown';
 import { initFlashes } from './components/flash';
 import { closeModal, initModals, openModal, setupModalGlobalListeners } from './components/modal';
+import { initSidebar } from './components/sidebar';
 import { initTabs } from './components/tabs';
 import { initThemeSwitchers } from './components/theme-switcher';
 import { isReady, markReady, onReady } from './core/ready';
@@ -27,6 +28,7 @@ export function initComponents(root = document) {
     initDropdowns(root);
     initFlashes(root);
     initModals(root);
+    initSidebar(root);
     initTabs(root);
     initThemeSwitchers(root);
 }
