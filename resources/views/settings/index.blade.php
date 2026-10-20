@@ -5,18 +5,16 @@
     <div class="p-page">
         <div class="p-container p-container--sm p-stack">
             <h2 class="p-page__title">Réglages</h2>
-            {{-- Réglages Core (toujours visible) --}}
             <x-card x-data="themeSwitcher()">
                 <div class="p-section__header--with-icon">
                     <x-custom-icon name="swatch" class="p-section__icon" />
                     <h4 class="p-section__title">Apparence</h4>
                     <span class="p-section__badge">Core</span>
                 </div>
-                
+
                 <p class="p-text">Choisissez le thème de l'application :</p>
-                
+
                 <div class="c-theme-switcher">
-                    <!-- Light Mode Button -->
                     <button type="button" class="c-theme-card" :class="{ 'c-theme-card--active': theme === 'light' }" @click="setTheme('light')">
                         <div class="c-theme-preview c-theme-preview--light">
                             <div class="c-theme-preview__header"></div>
@@ -25,8 +23,7 @@
                         </div>
                         <span class="p-text--bold" style="font-size: 0.875rem;">Clair</span>
                     </button>
-                    
-                    <!-- Dark Mode Button -->
+
                     <button type="button" class="c-theme-card" :class="{ 'c-theme-card--active': theme === 'dark' }" @click="setTheme('dark')">
                         <div class="c-theme-preview c-theme-preview--dark">
                             <div class="c-theme-preview__header"></div>
@@ -38,69 +35,66 @@
                 </div>
             </x-card>
 
-            {{-- Réglages des plugins --}}
-            @forelse($reglages as $pluginId => $plugin)
-                <x-card x-data="reglagesPlugin('{{ $pluginId }}', {{ json_encode($valeurs[$pluginId] ?? []) }})">
+            @forelse($settings as $slug => $plugin)
+                <x-card x-data="pluginSettings('{{ $slug }}', {{ json_encode($values[$slug] ?? []) }})">
                     <div class="p-section__header--with-icon">
                         <x-custom-icon name="puzzle" class="p-section__icon" />
-                        <h4 class="p-section__title">{{ $plugin['nom'] }}</h4>
+                        <h4 class="p-section__title">{{ $plugin['name'] }}</h4>
                         <span class="p-section__badge">Plugin</span>
                     </div>
 
-                    <form @submit.prevent="sauvegarder" class="p-form-group">
-                        @foreach($plugin['champs'] as $champ)
+                    <form @submit.prevent="save" class="p-form-group">
+                        @foreach($plugin['fields'] as $field)
                             <div>
                                 <label class="c-input-label">
-                                    {{ $champ['label'] }}
-                                    @if($champ['obligatoire'] ?? false)
+                                    {{ $field['label'] }}
+                                    @if($field['required'] ?? false)
                                         <span class="c-input-required">*</span>
                                     @endif
                                 </label>
 
-                                @if(($champ['type'] ?? 'text') === 'select')
-                                    <select x-model="valeurs['{{ $champ['cle'] }}']" class="c-input" {{ ($champ['obligatoire'] ?? false) ? 'required' : '' }}>
-                                        @foreach($champ['options'] ?? [] as $option)
+                                @if(($field['type'] ?? 'text') === 'select')
+                                    <select x-model="values['{{ $field['key'] }}']" class="c-input" {{ ($field['required'] ?? false) ? 'required' : '' }}>
+                                        @foreach($field['options'] ?? [] as $option)
                                             <option value="{{ $option }}">{{ ucfirst($option) }}</option>
                                         @endforeach
                                     </select>
-                                @elseif(($champ['type'] ?? 'text') === 'textarea')
-                                    <textarea x-model="valeurs['{{ $champ['cle'] }}']" rows="3" class="c-input" {{ ($champ['obligatoire'] ?? false) ? 'required' : '' }}></textarea>
+                                @elseif(($field['type'] ?? 'text') === 'textarea')
+                                    <textarea x-model="values['{{ $field['key'] }}']" rows="3" class="c-input" {{ ($field['required'] ?? false) ? 'required' : '' }}></textarea>
                                 @else
-                                    <input type="{{ $champ['type'] ?? 'text' }}" x-model="valeurs['{{ $champ['cle'] }}']"
-                                        placeholder="{{ $champ['placeholder'] ?? '' }}" class="c-input" {{ ($champ['obligatoire'] ?? false) ? 'required' : '' }}>
+                                    <input type="{{ $field['type'] ?? 'text' }}" x-model="values['{{ $field['key'] }}']"
+                                        placeholder="{{ $field['placeholder'] ?? '' }}" class="c-input" {{ ($field['required'] ?? false) ? 'required' : '' }}>
                                 @endif
 
-                                @if(isset($champ['aide']))
-                                    <p class="c-input-help">{{ $champ['aide'] }}</p>
+                                @if(isset($field['help']))
+                                    <p class="c-input-help">{{ $field['help'] }}</p>
                                 @endif
                             </div>
                         @endforeach
                     </form>
 
                     <div class="p-card-footer">
-                        <x-button variant="primary" size="sm" @click="$el.closest('.c-card').querySelector('form').requestSubmit()" x-bind:disabled="sauvegarde">
-                            <span x-text="sauvegarde ? 'Sauvegarde...' : 'Sauvegarder'"></span>
+                        <x-button variant="primary" size="sm" @click="$el.closest('.c-card').querySelector('form').requestSubmit()" x-bind:disabled="saving">
+                            <span x-text="saving ? 'Sauvegarde...' : 'Sauvegarder'"></span>
                         </x-button>
 
-                        <div x-show="succes" x-cloak>
-                            <template x-if="succes">
-                                <x-alert type="succes" message="Réglages sauvegardés avec succès." />
+                        <div x-show="saved" x-cloak>
+                            <template x-if="saved">
+                                <x-alert type="success" message="Réglages sauvegardés avec succès." />
                             </template>
                         </div>
 
-                        <div x-show="erreur" x-cloak>
-                            <template x-if="erreur">
-                                <x-alert type="erreur">
-                                    <span x-text="erreur"></span>
+                        <div x-show="error" x-cloak>
+                            <template x-if="error">
+                                <x-alert type="error">
+                                    <span x-text="error"></span>
                                 </x-alert>
                             </template>
                         </div>
                     </div>
                 </x-card>
             @empty
-                {{-- Aucun plugin avec réglages --}}
             @endforelse
-
         </div>
     </div>
 
@@ -126,21 +120,20 @@
                 }
             }
 
-            function reglagesPlugin(pluginId, valeursInitiales) {
+            function pluginSettings(slug, initialValues) {
                 return {
-                    valeurs: valeursInitiales || {},
-                    sauvegarde: false,
-                    succes: false,
-                    erreur: null,
+                    values: initialValues || {},
+                    saving: false,
+                    saved: false,
+                    error: null,
 
-                    async sauvegarder() {
-                        this.sauvegarde = true;
-                        this.succes = false;
-                        this.erreur = null;
+                    async save() {
+                        this.saving = true;
+                        this.saved = false;
+                        this.error = null;
 
                         try {
-                            const donnees = Object.assign({}, this.valeurs);
-                            const r = await fetch('/settings/reglages', {
+                            const response = await fetch('{{ route('settings.update') }}', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -148,23 +141,23 @@
                                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                                 },
                                 body: JSON.stringify({
-                                    plugin: pluginId,
-                                    reglages: donnees,
+                                    plugin: slug,
+                                    settings: this.values,
                                 }),
                             });
 
-                            const data = await r.json();
+                            const data = await response.json();
 
-                            if (r.ok) {
-                                this.succes = true;
-                                setTimeout(() => this.succes = false, 3000);
+                            if (response.ok) {
+                                this.saved = true;
+                                setTimeout(() => this.saved = false, 3000);
                             } else {
-                                this.erreur = data.erreur ?? 'Erreur inconnue.';
+                                this.error = data.error ?? 'Erreur inconnue.';
                             }
-                        } catch (e) {
-                            this.erreur = e.message;
+                        } catch (exception) {
+                            this.error = exception.message;
                         } finally {
-                            this.sauvegarde = false;
+                            this.saving = false;
                         }
                     },
                 }

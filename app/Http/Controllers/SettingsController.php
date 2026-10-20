@@ -1,51 +1,70 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
-use App\Core\Plugin\PluginManager;
-use App\Models\Plugin;
+use App\Plugins\Models\Plugin as PluginModel;
+use App\Plugins\PluginManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\View\View;
 
 class SettingsController extends Controller
 {
-    public function index(PluginManager $manager)
+    public function index(PluginManager $manager): View
     {
-        $reglages = $manager->getTousLesReglages();
+        $settings = $manager->settings();
+        $values = [];
 
-        // Charger les valeurs actuelles pour chaque plugin
-        $valeurs = [];
-        foreach ($reglages as $pluginId => $plugin) {
-            $config =
-                Plugin::where('identifiant', $pluginId)->value(
-                    'configuration',
-                ) ?? [];
-            $valeurs[$pluginId] = $config;
+        foreach (array_keys($settings) as $slug) {
+            $values[$slug] = $manager->model($slug)?->configuration ?? [];
         }
 
-        return view('settings.index', compact('reglages', 'valeurs'));
+        return view('settings.index', compact('settings', 'values'));
     }
 
-    public function sauvegarderReglages(Request $request): JsonResponse
+    public function update(Request $request, PluginManager $manager): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'plugin' => ['required', 'string'],
-            'reglages' => ['required', 'array'],
+            'settings' => ['required', 'array'],
         ]);
 
-        $plugin = Plugin::where('identifiant', $request->plugin)->first();
+        $settings = $manager->settings();
+        $schema = $settings[$validated['plugin']] ?? null;
 
-        if (! $plugin) {
-            return response()->json(['erreur' => 'Plugin introuvable'], 404);
+        if ($schema === null) {
+            return response()->json(['error' => 'Plugin not found.'], 404);
         }
 
-        $config = $plugin->configuration ?? [];
-        $config = array_merge($config, $request->reglages);
-        $plugin->update(['configuration' => $config]);
+        $fields = collect($schema['fields'])->keyBy('key');
+
+        foreach ($fields as $key => $field) {
+            if (($field['required'] ?? false) && blank($validated['settings'][$key] ?? null)) {
+                return response()->json([
+                    'error' => "The field [{$key}] is required.",
+                ], 422);
+            }
+        }
+
+        $plugin = PluginModel::query()->where('slug', $validated['plugin'])->first();
+
+        if ($plugin === null) {
+            return response()->json(['error' => 'Plugin not found.'], 404);
+        }
+
+        $configuration = array_merge(
+            $plugin->configuration ?? [],
+            Arr::only($validated['settings'], $fields->keys()->all()),
+        );
+
+        $plugin->update(['configuration' => $configuration]);
 
         return response()->json([
-            'succes' => true,
-            'message' => 'Réglages sauvegardés.',
+            'success' => true,
+            'message' => 'Settings saved.',
         ]);
     }
 }

@@ -13,7 +13,7 @@
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         {{-- CSS des plugins actifs --}}
-        @foreach(app(\App\Core\Plugin\PluginManager::class)->getCssPaths() as $cssPath)
+        @foreach(app(\App\Plugins\PluginManager::class)->stylesheets() as $cssPath)
             <link rel="stylesheet" href="{{ asset($cssPath) }}">
         @endforeach
         <style>
@@ -29,12 +29,12 @@
     </head>
     <body class="l-body">
         <div x-data="sidebar()" class="l-app">
-            @if(session('succes'))
-                <x-alert type="succes" :message="session('succes')" />
+            @if(session('success'))
+                <x-alert type="success" :message="session('success')" />
             @endif
 
-            @if(session('erreur'))
-                <x-alert type="erreur" :message="session('erreur')" />
+            @if(session('error'))
+                <x-alert type="error" :message="session('error')" />
             @endif
             {{-- ══════ OVERLAY MOBILE ══════ --}}
             <div
@@ -105,7 +105,7 @@
 
                     {{-- Liens ajoutés par les plugins --}}
                     @php
-                        $navItems = app(\App\Core\Plugin\PluginManager::class)->getNavigationItems();
+                        $navItems = app(\App\Plugins\PluginManager::class)->navigation();
                     @endphp
 
                     @if(!empty($navItems))
@@ -116,16 +116,16 @@
                             </p>
 
                             @foreach($navItems as $item)
-                                <div x-data="{ open: {{ collect($item['sous_menus'] ?? [])->contains(fn($s) => request()->routeIs($s['route'])) ? 'true' : 'false' }} }">
-                                    @if(!empty($item['sous_menus']))
+                                <div x-data="{ open: {{ collect($item['children'] ?? [])->contains(fn($s) => request()->routeIs($s['route'])) ? 'true' : 'false' }} }">
+                                    @if(!empty($item['children']))
                                         {{-- Cas avec sous-menu : Bouton Toggle --}}
                                         <button
                                             @click="open = !open"
                                             type="button"
-                                            class="l-sidebar__menu-btn {{ collect($item['sous_menus'])->contains(fn($s) => request()->routeIs($s['route'])) ? '' : '' }}"
+                                            class="l-sidebar__menu-btn {{ collect($item['children'])->contains(fn($s) => request()->routeIs($s['route'])) ? '' : '' }}"
                                         >
-                                            @if(isset($item['icone']))
-                                                <x-custom-icon :name="$item['icone']" class="c-icon--sm c-icon--no-shrink" />
+                                            @if(isset($item['icon']))
+                                                <x-custom-icon :name="$item['icon']" class="c-icon--sm c-icon--no-shrink" />
                                             @endif
 
                                             <span class="u-flex-1 u-text-left">{{ $item['label'] }}</span>
@@ -149,7 +149,7 @@
                                             x-cloak
                                             class="l-sidebar__submenu"
                                         >
-                                            @foreach($item['sous_menus'] as $sousMenu)
+                                            @foreach($item['children'] as $sousMenu)
                                                 <a
                                                     href="{{ route($sousMenu['route']) }}"
                                                     class="l-sidebar__submenu-link {{ request()->routeIs($sousMenu['route']) ? 'l-sidebar__submenu-link--active' : '' }}"
@@ -164,8 +164,8 @@
                                             href="{{ route($item['route']) }}"
                                             class="l-sidebar__menu-btn {{ request()->routeIs($item['route'] . '*') ? 'c-sidebar-link--active' : '' }}"
                                         >
-                                            @if(isset($item['icone']))
-                                                <x-custom-icon :name="$item['icone']" class="c-icon--sm c-icon--no-shrink" />
+                                            @if(isset($item['icon']))
+                                                <x-custom-icon :name="$item['icon']" class="c-icon--sm c-icon--no-shrink" />
                                             @endif
                                             {{ $item['label'] }}
                                         </a>
@@ -282,16 +282,16 @@
                         <div class="l-sidebar__section">
                             @foreach($navItems as $item)
                                 <div x-data="{ open: false }" style="position: relative;">
-                                    @if(!empty($item['sous_menus']))
+                                    @if(!empty($item['children']))
                                         {{-- Cas avec sous-menu : Bouton Toggle --}}
                                         <button
                                             @click="open = !open"
                                             @click.outside="open = false"
                                             type="button"
-                                            class="l-sidebar__menu-btn c-sidebar-link {{ collect($item['sous_menus'])->contains(fn($s) => request()->routeIs($s['route'])) ? 'c-sidebar-link--active' : '' }}"
+                                            class="l-sidebar__menu-btn c-sidebar-link {{ collect($item['children'])->contains(fn($s) => request()->routeIs($s['route'])) ? 'c-sidebar-link--active' : '' }}"
                                         >
-                                            @if(isset($item['icone']))
-                                                <x-custom-icon :name="$item['icone']" class="c-sidebar-link__icon c-icon--sm c-icon--no-shrink" />
+                                            @if(isset($item['icon']))
+                                                <x-custom-icon :name="$item['icon']" class="c-sidebar-link__icon c-icon--sm c-icon--no-shrink" />
                                             @endif
                                             <span class="c-sidebar-link__tooltip" x-show="!open">{{ $item['label'] }}</span>
                                         </button>
@@ -301,7 +301,7 @@
                                             x-cloak
                                             class="l-sidebar__dropdown l-sidebar__dropdown--side"
                                         >
-                                            @foreach($item['sous_menus'] as $sousMenu)
+                                            @foreach($item['children'] as $sousMenu)
                                                 <a
                                                     href="{{ route($sousMenu['route']) }}"
                                                     class="l-sidebar__dropdown-link {{ request()->routeIs($sousMenu['route']) ? 'l-sidebar__dropdown-link--active' : '' }}"
@@ -315,7 +315,7 @@
                                         @include('layouts.sidebar-link', [
                                             'route' => $item['route'],
                                             'hover' => $item['label'],
-                                            'icon'  => $item['icone'] ?? 'puzzle',
+                                            'icon'  => $item['icon'] ?? 'puzzle',
                                         ])
                                     @endif
                                 </div>

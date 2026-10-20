@@ -2,13 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Core\Plugin;
+namespace App\Plugins;
 
-class PluginAutoloader
+final class PluginAutoloader
 {
-    /**
-     * @var array<string, string>
-     */
+    /** @var array<string, string> */
     private array $prefixes = [];
 
     public function __construct()
@@ -26,25 +24,20 @@ class PluginAutoloader
 
     public function hasNamespace(string $prefix): bool
     {
-        $prefix = trim($prefix, '\\').'\\';
-
-        return isset($this->prefixes[$prefix]);
+        return isset($this->prefixes[trim($prefix, '\\').'\\']);
     }
 
-    /**
-     * Charge l'autoloader Composer tiers d'un plugin si présent.
-     */
-    public function chargerVendor(string $cheminDossier): bool
+    public function loadVendor(string $pluginPath): bool
     {
-        $vendorAutoload = rtrim($cheminDossier, '/').'/vendor/autoload.php';
+        $autoload = rtrim($pluginPath, '/').'/vendor/autoload.php';
 
-        if (file_exists($vendorAutoload)) {
-            require_once $vendorAutoload;
-
-            return true;
+        if (! is_file($autoload)) {
+            return false;
         }
 
-        return false;
+        require_once $autoload;
+
+        return true;
     }
 
     public function autoload(string $class): void
@@ -57,7 +50,7 @@ class PluginAutoloader
             $relativeClass = substr($class, strlen($prefix));
             $file = $baseDirectory.str_replace('\\', '/', $relativeClass).'.php';
 
-            if (file_exists($file)) {
+            if (is_file($file)) {
                 require_once $file;
 
                 return;
@@ -68,7 +61,7 @@ class PluginAutoloader
     /**
      * @return array<string, string>
      */
-    public function getPrefixes(): array
+    public function prefixes(): array
     {
         return $this->prefixes;
     }

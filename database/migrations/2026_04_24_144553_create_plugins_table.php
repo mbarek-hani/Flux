@@ -17,14 +17,19 @@ return new class extends Migration
             $table->string('version', 20)->default('1.0.0');
             $table->text('description')->nullable();
             $table->string('author')->nullable();
+            $table->string('license')->nullable();
             $table->boolean('is_active')->default(false);
             $table->json('configuration')->nullable();
-            $table->json('metadata')->nullable();
+            $table->json('manifest')->nullable();
+            $table->string('status', 20)->default('discovered');
             $table->timestamp('installed_at')->nullable();
-            $table->timestamp('activated_at')->nullable();
+            $table->timestamp('enabled_at')->nullable();
+            $table->timestamp('disabled_at')->nullable();
+            $table->text('last_error')->nullable();
+            $table->timestamp('last_error_at')->nullable();
             $table->timestamps();
 
-            $table->index('is_active');
+            $table->index(['is_active', 'status']);
         });
     }
 

@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Core\Plugin\PluginManager;
-use App\Models\Plugin;
+use App\Plugins\PluginManager;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class PluginController extends Controller
@@ -16,89 +14,79 @@ class PluginController extends Controller
 
     public function index(): View
     {
-        $decouverts = $this->manager->getPluginsDecouverts();
-        $ids = array_keys($decouverts);
-
-        // Optimisation N+1 : charger tous les modèles en une seule requête
-        $enBdd = Plugin::whereIn('identifiant', $ids)->get()->keyBy('identifiant');
-
+        $states = $this->manager->stateRepository()->all()->keyBy('slug');
         $plugins = [];
 
-        foreach ($decouverts as $id => $metadata) {
-            $model = $enBdd->get($id);
+        foreach ($this->manager->discovered() as $slug => $discovered) {
+            $state = $states->get($slug);
+            $manifest = $discovered->manifest;
 
             $plugins[] = [
-                'identifiant' => $id,
-                'nom' => $metadata->getNom(),
-                'version' => $metadata->getVersion(),
-                'description' => $metadata->getDescription(),
-                'auteur' => $metadata->getAuteur(),
-                'actif' => $model?->actif ?? false,
-                'installe' => $model !== null && $model->installe_le !== null,
-                'onglets' => $metadata->getOnglets(),
-                'hooks' => $metadata->getHooks(),
+                'slug' => $slug,
+                'name' => $manifest->name,
+                'version' => $manifest->version,
+                'description' => $manifest->description,
+                'author' => $manifest->author,
+                'active' => (bool) ($state?->is_active ?? false),
+                'installed' => $state?->installed_at !== null,
+                'tabs' => $manifest->tabs,
+                'hooks' => array_map(fn ($hook) => $hook->name, $manifest->hooks),
             ];
         }
 
         return view('plugins.index', compact('plugins'));
     }
 
-    public function show(string $identifiant): View
+    public function show(string $slug): View
     {
-        $metadata = $this->manager->getPluginMetadata($identifiant);
+        $manifest = $this->manager->manifest($slug);
 
-        if (! $metadata) {
-            abort(404, 'Plugin non trouvé');
+        if ($manifest === null) {
+            abort(404, 'Plugin not found');
         }
 
-        $enBdd = Plugin::where('identifiant', $identifiant)->first();
-        $plugin = $this->manager->getPluginInstance($identifiant);
+        $state = $this->manager->model($slug);
+        $plugin = $this->manager->instance($slug);
 
         $details = [
-            'identifiant' => $identifiant,
-            'nom' => $plugin?->getNom() ?? $metadata->getNom(),
-            'version' => $plugin?->getVersion() ?? $metadata->getVersion(),
-            'description' => $metadata->getDescription() !== '' ? $metadata->getDescription() : 'Aucune description disponible.',
-            'auteur' => $metadata->getAuteur(),
-            'licence' => $metadata->getLicence(),
-            'url' => $metadata->getUrl(),
-            'actif' => $enBdd?->actif ?? false,
-            'installe' => $enBdd !== null && $enBdd->installe_le !== null,
-            'active_le' => $enBdd?->active_le ?? null,
-            'onglets' => $plugin?->getOnglets() ?? $metadata->getOnglets(),
-            'hooks' => $plugin?->getHooks() ?? $metadata->getHooks(),
-            'navigation' => $plugin?->getNavigationItems() ?? $metadata->getNavigationItems(),
-            'reglages' => $plugin?->getReglages() ?? $metadata->getReglages(),
+            'slug' => $slug,
+            'name' => $plugin?->name() ?? $manifest->name,
+            'version' => $plugin?->version() ?? $manifest->version,
+            'description' => $manifest->description !== '' ? $manifest->description : 'No description available.',
+            'author' => $manifest->author,
+            'license' => $manifest->license,
+            'url' => $manifest->url,
+            'active' => (bool) ($state?->is_active ?? false),
+            'installed' => $state?->installed_at !== null,
+            'enabled_at' => $state?->enabled_at,
+            'tabs' => $manifest->tabs,
+            'hooks' => array_map(fn ($hook) => $hook->name, $manifest->hooks),
+            'navigation' => $manifest->navigation,
+            'settings' => $manifest->settings,
         ];
 
         return view('plugins.show', compact('details'));
     }
 
-    public function activer(Request $request, string $identifiant): RedirectResponse
+    public function enable(string $slug): RedirectResponse
     {
-        $succes = $this->manager->activer($identifiant);
+        $success = $this->manager->enable($slug);
 
         return redirect()
             ->route('plugins.index')
-            ->with(
-                $succes ? 'succes' : 'erreur',
-                $succes
-                    ? "Plugin « {$identifiant} » activé."
-                    : "Impossible d'activer le plugin.",
-            );
+            ->with($success ? 'success' : 'error', $success
+                ? "Plugin [{$slug}] enabled."
+                : 'Unable to enable the plugin.');
     }
 
-    public function desactiver(Request $request, string $identifiant): RedirectResponse
+    public function disable(string $slug): RedirectResponse
     {
-        $succes = $this->manager->desactiver($identifiant);
+        $success = $this->manager->disable($slug);
 
         return redirect()
             ->route('plugins.index')
-            ->with(
-                $succes ? 'succes' : 'erreur',
-                $succes
-                    ? "Plugin « {$identifiant} » désactivé."
-                    : 'Impossible de désactiver le plugin.',
-            );
+            ->with($success ? 'success' : 'error', $success
+                ? "Plugin [{$slug}] disabled."
+                : 'Unable to disable the plugin.');
     }
 }

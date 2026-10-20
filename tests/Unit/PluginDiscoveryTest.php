@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
-use App\Core\Plugin\PluginAutoloader;
-use App\Core\Plugin\PluginDiscovery;
-use App\Core\Plugin\PluginMetadata;
+use App\Plugins\Data\DiscoveredPlugin;
+use App\Plugins\ManifestReader;
+use App\Plugins\PluginAutoloader;
+use App\Plugins\PluginDiscovery;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
 class PluginDiscoveryTest extends TestCase
 {
-    private string $tempPluginsDir;
+    private string $pluginsDirectory;
 
-    private string $tempCacheFile;
+    private string $cacheFile;
 
     private PluginAutoloader $autoloader;
 
@@ -22,21 +23,21 @@ class PluginDiscoveryTest extends TestCase
     {
         parent::setUp();
 
-        $this->tempPluginsDir = storage_path('framework/testing/test_plugins');
-        $this->tempCacheFile = storage_path('framework/testing/test_plugins_cache.php');
+        $this->pluginsDirectory = storage_path('framework/testing/test_plugins');
+        $this->cacheFile = storage_path('framework/testing/test_plugins_cache.php');
 
-        File::ensureDirectoryExists($this->tempPluginsDir);
+        File::ensureDirectoryExists($this->pluginsDirectory);
         $this->autoloader = new PluginAutoloader;
     }
 
     protected function tearDown(): void
     {
-        if (File::isDirectory($this->tempPluginsDir)) {
-            File::deleteDirectory($this->tempPluginsDir);
+        if (File::isDirectory($this->pluginsDirectory)) {
+            File::deleteDirectory($this->pluginsDirectory);
         }
 
-        if (File::exists($this->tempCacheFile)) {
-            File::delete($this->tempCacheFile);
+        if (File::exists($this->cacheFile)) {
+            File::delete($this->cacheFile);
         }
 
         parent::tearDown();
@@ -44,135 +45,126 @@ class PluginDiscoveryTest extends TestCase
 
     public function test_discovers_plugins_from_manifest_without_instantiating(): void
     {
-        $pluginDir = $this->tempPluginsDir.'/DummyPlugin';
-        File::ensureDirectoryExists($pluginDir.'/src');
-
-        $manifest = [
-            'identifiant' => 'dummy-plugin',
-            'nom' => 'Dummy Plugin',
+        $this->writePlugin('DummyPlugin', [
+            'slug' => 'dummy-plugin',
+            'name' => 'Dummy Plugin',
             'version' => '1.2.0',
-            'classe' => 'Plugins\\DummyPlugin\\DummyPlugin',
-            'description' => 'Un plugin factice pour les tests.',
-            'auteur' => 'Flux Tester',
-            'licence' => 'MIT',
-        ];
+            'class' => 'Plugins\\DummyPlugin\\DummyPlugin',
+            'description' => 'A dummy plugin used by tests.',
+            'author' => 'Flux Tester',
+            'license' => 'MIT',
+        ]);
 
-        File::put($pluginDir.'/manifest.json', json_encode($manifest));
-
-        $discovery = new PluginDiscovery(
-            $this->autoloader,
-            $this->tempPluginsDir,
-            $this->tempCacheFile,
-        );
-
-        $discovered = $discovery->decouvrir();
+        $discovered = $this->discovery()->discover();
 
         $this->assertArrayHasKey('dummy-plugin', $discovered);
-        $meta = $discovered['dummy-plugin'];
-        $this->assertInstanceOf(PluginMetadata::class, $meta);
-        $this->assertSame('dummy-plugin', $meta->getIdentifiant());
-        $this->assertSame('Dummy Plugin', $meta->getNom());
-        $this->assertSame('1.2.0', $meta->getVersion());
-        $this->assertSame('Un plugin factice pour les tests.', $meta->getDescription());
-        $this->assertSame('Flux Tester', $meta->getAuteur());
-        $this->assertSame('Plugins\\DummyPlugin', $meta->namespace);
 
-        // Namespace was registered in autoloader
+        $plugin = $discovered['dummy-plugin'];
+        $this->assertInstanceOf(DiscoveredPlugin::class, $plugin);
+        $this->assertSame('dummy-plugin', $plugin->slug());
+        $this->assertSame('Dummy Plugin', $plugin->name());
+        $this->assertSame('1.2.0', $plugin->version());
+        $this->assertSame('A dummy plugin used by tests.', $plugin->manifest->description);
+        $this->assertSame('Flux Tester', $plugin->manifest->author);
+        $this->assertSame('Plugins\\DummyPlugin', $plugin->namespace());
         $this->assertTrue($this->autoloader->hasNamespace('Plugins\\DummyPlugin'));
     }
 
     public function test_caches_and_loads_from_cache(): void
     {
-        $pluginDir = $this->tempPluginsDir.'/CacheablePlugin';
-        File::ensureDirectoryExists($pluginDir.'/src');
-
-        $manifest = [
-            'identifiant' => 'cacheable-plugin',
-            'nom' => 'Cacheable Plugin',
+        $this->writePlugin('CacheablePlugin', [
+            'slug' => 'cacheable-plugin',
+            'name' => 'Cacheable Plugin',
             'version' => '2.0.0',
-            'classe' => 'Plugins\\CacheablePlugin\\CacheablePlugin',
-        ];
+            'class' => 'Plugins\\CacheablePlugin\\CacheablePlugin',
+        ]);
 
-        File::put($pluginDir.'/manifest.json', json_encode($manifest));
+        $discovery = $this->discovery();
 
-        $discovery = new PluginDiscovery(
-            $this->autoloader,
-            $this->tempPluginsDir,
-            $this->tempCacheFile,
-        );
+        $this->assertFalse($discovery->isCached());
 
-        $this->assertFalse($discovery->estEnCache());
+        $cached = $discovery->cache();
+        $this->assertCount(1, $cached);
+        $this->assertTrue($discovery->isCached());
+        $this->assertFileExists($this->cacheFile);
 
-        // Cache discovery
-        $cachedPlugins = $discovery->mettreEnCache();
-        $this->assertCount(1, $cachedPlugins);
-        $this->assertTrue($discovery->estEnCache());
-        $this->assertFileExists($this->tempCacheFile);
-
-        // Delete manifest file to prove reading from cache
-        File::delete($pluginDir.'/manifest.json');
+        File::delete($this->pluginsDirectory.'/CacheablePlugin/manifest.json');
 
         $freshAutoloader = new PluginAutoloader;
         $cachedDiscovery = new PluginDiscovery(
             $freshAutoloader,
-            $this->tempPluginsDir,
-            $this->tempCacheFile,
+            new ManifestReader,
+            $this->pluginsDirectory,
+            $this->cacheFile,
         );
 
-        $results = $cachedDiscovery->decouvrir();
+        $results = $cachedDiscovery->discover();
         $this->assertArrayHasKey('cacheable-plugin', $results);
-        $this->assertSame('Cacheable Plugin', $results['cacheable-plugin']->getNom());
+        $this->assertSame('Cacheable Plugin', $results['cacheable-plugin']->name());
         $this->assertTrue($freshAutoloader->hasNamespace('Plugins\\CacheablePlugin'));
 
-        // Clear cache
-        $cachedDiscovery->viderCache();
-        $this->assertFalse($cachedDiscovery->estEnCache());
+        $cachedDiscovery->clearCache();
+        $this->assertFalse($cachedDiscovery->isCached());
     }
 
     public function test_handles_corrupt_manifest_gracefully(): void
     {
-        $corruptDir = $this->tempPluginsDir.'/CorruptPlugin';
-        File::ensureDirectoryExists($corruptDir);
-        File::put($corruptDir.'/manifest.json', 'INVALID JSON {');
+        $directory = $this->pluginsDirectory.'/CorruptPlugin';
+        File::ensureDirectoryExists($directory);
+        File::put($directory.'/manifest.json', 'INVALID JSON {');
 
-        $discovery = new PluginDiscovery(
-            $this->autoloader,
-            $this->tempPluginsDir,
-            $this->tempCacheFile,
-        );
+        $this->assertEmpty($this->discovery()->discover());
+    }
 
-        $plugins = $discovery->decouvrir();
-        $this->assertEmpty($plugins);
+    public function test_ignores_manifests_outside_the_plugins_namespace(): void
+    {
+        $this->writePlugin('InvalidPlugin', [
+            'slug' => 'invalid-plugin',
+            'name' => 'Invalid Plugin',
+            'class' => 'App\\Plugins\\InvalidPlugin',
+        ]);
+
+        $this->assertEmpty($this->discovery()->discover());
     }
 
     public function test_loads_vendor_autoload_if_present(): void
     {
-        $vendorPluginDir = $this->tempPluginsDir.'/VendorPlugin';
-        File::ensureDirectoryExists($vendorPluginDir.'/vendor');
-        File::ensureDirectoryExists($vendorPluginDir.'/src');
+        $this->writePlugin('VendorPlugin', [
+            'slug' => 'vendor-plugin',
+            'name' => 'Vendor Plugin',
+            'class' => 'Plugins\\VendorPlugin\\VendorPlugin',
+        ]);
 
-        File::put($vendorPluginDir.'/vendor/autoload.php', "<?php define('TEST_VENDOR_LOADED_FLAG', true);");
-
-        $manifest = [
-            'identifiant' => 'vendor-plugin',
-            'nom' => 'Vendor Plugin',
-            'classe' => 'Plugins\\VendorPlugin\\VendorPlugin',
-        ];
-
-        File::put($vendorPluginDir.'/manifest.json', json_encode($manifest));
-
-        $discovery = new PluginDiscovery(
-            $this->autoloader,
-            $this->tempPluginsDir,
-            $this->tempCacheFile,
+        File::ensureDirectoryExists($this->pluginsDirectory.'/VendorPlugin/vendor');
+        File::put(
+            $this->pluginsDirectory.'/VendorPlugin/vendor/autoload.php',
+            "<?php define('TEST_VENDOR_LOADED_FLAG', true);",
         );
 
-        $discovered = $discovery->decouvrir();
-        $metadata = $discovered['vendor-plugin'];
+        $discovered = $this->discovery()->discover();
 
-        // Instantiating should trigger vendor autoload
-        $discovery->instancier($metadata);
+        $this->discovery()->instantiate($discovered['vendor-plugin']);
 
         $this->assertTrue(defined('TEST_VENDOR_LOADED_FLAG'));
+    }
+
+    /**
+     * @param  array<string, mixed>  $manifest
+     */
+    private function writePlugin(string $folder, array $manifest): void
+    {
+        $directory = $this->pluginsDirectory.'/'.$folder;
+        File::ensureDirectoryExists($directory.'/src');
+        File::put($directory.'/manifest.json', json_encode($manifest));
+    }
+
+    private function discovery(): PluginDiscovery
+    {
+        return new PluginDiscovery(
+            $this->autoloader,
+            new ManifestReader,
+            $this->pluginsDirectory,
+            $this->cacheFile,
+        );
     }
 }

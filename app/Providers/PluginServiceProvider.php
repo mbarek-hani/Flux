@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Console\Commands\PluginCacheCommand;
-use App\Console\Commands\PluginClearCommand;
-use App\Core\Plugin\PluginAutoloader;
-use App\Core\Plugin\PluginDiscovery;
-use App\Core\Plugin\PluginManager;
+use App\Plugins\Console\Commands\MakePluginCommand;
+use App\Plugins\Console\Commands\PluginCacheCommand;
+use App\Plugins\Console\Commands\PluginClearCommand;
+use App\Plugins\Console\Commands\PluginDisableCommand;
+use App\Plugins\Console\Commands\PluginEnableCommand;
+use App\Plugins\Console\Commands\PluginInstallCommand;
+use App\Plugins\Console\Commands\PluginListCommand;
+use App\Plugins\Console\Commands\PluginUninstallCommand;
+use App\Plugins\Console\Commands\PluginValidateCommand;
+use App\Plugins\PluginManager;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
@@ -16,76 +21,63 @@ class PluginServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(PluginAutoloader::class);
-
-        $this->app->singleton(PluginDiscovery::class);
-
         $this->app->singleton(PluginManager::class);
     }
 
     public function boot(): void
     {
-        $this->enregistrerDirectivesBlade();
+        $this->registerBladeDirectives();
 
         if ($this->app->runningInConsole()) {
             $this->commands([
+                MakePluginCommand::class,
                 PluginCacheCommand::class,
                 PluginClearCommand::class,
+                PluginDisableCommand::class,
+                PluginEnableCommand::class,
+                PluginInstallCommand::class,
+                PluginListCommand::class,
+                PluginUninstallCommand::class,
+                PluginValidateCommand::class,
             ]);
         }
 
-        if (! $this->doitIgnorer()) {
-            /** @var PluginManager $manager */
-            $manager = $this->app->make(PluginManager::class);
-            $manager->initialiser();
+        if (! $this->shouldSkipInitialization()) {
+            $this->app->make(PluginManager::class)->initialize();
         }
     }
 
-    /**
-     * Enregistre les directives Blade communes (toujours actives).
-     */
-    private function enregistrerDirectivesBlade(): void
+    private function registerBladeDirectives(): void
     {
-        // @hook('dashboard.widgets')
         Blade::directive(
             'hook',
-            fn (
-                string $expression,
-            ): string => "<?php echo implode('', app(\App\Core\Plugin\PluginManager::class)->executerHook({$expression})); ?>",
+            fn (string $expression): string => "<?php echo implode('', app(\\App\\Plugins\\PluginManager::class)->renderHook({$expression})); ?>",
+        );
+
+        Blade::directive(
+            'filter',
+            fn (string $expression): string => "<?php echo app(\\App\\Plugins\\PluginManager::class)->filter({$expression}); ?>",
         );
     }
 
-    /**
-     * Détermine si l'initialisation des plugins doit être ignorée.
-     * Cas ignorés : migrate, migrate:fresh, migrate:rollback, tests, plugin:clear, etc.
-     */
-    private function doitIgnorer(): bool
+    private function shouldSkipInitialization(): bool
     {
         if (! $this->app->runningInConsole()) {
             return false;
         }
 
-        // Commandes artisan qui ne doivent PAS déclencher l'init des plugins
-        $commandesIgnorees = [
+        $ignored = [
             'migrate',
-            'migrate:fresh',
-            'migrate:rollback',
-            'migrate:reset',
-            'migrate:refresh',
-            'migrate:status',
-            'db:seed',
-            'db:wipe',
-            'schema:dump',
-            'plugin:clear',
+            'db:',
+            'schema:',
             'plugin:cache',
+            'plugin:clear',
         ];
 
-        // Récupère la commande artisan en cours d'exécution
-        $argv = $_SERVER['argv'] ?? [];
-        $commandeEnCours = (string) ($argv[1] ?? '');
+        $command = (string) ($_SERVER['argv'][1] ?? '');
 
-        foreach ($commandesIgnorees as $commande) {
-            if (str_starts_with($commandeEnCours, $commande)) {
+        foreach ($ignored as $prefix) {
+            if (str_starts_with($command, $prefix)) {
                 return true;
             }
         }

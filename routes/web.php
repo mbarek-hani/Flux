@@ -19,31 +19,27 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/stats', [DashboardController::class, 'stats'])->name(
         'dashboard.stats',
     );
-    Route::post('/dashboard/reglages', [
-        DashboardController::class,
-        'sauvegarderReglages',
-    ])->name('dashboard.reglages');
 
     Route::resource('sites', SiteController::class);
-    Route::post('/sites/{site}/toggle-actif', [
+    Route::post('/sites/{site}/toggle-active', [
         SiteController::class,
-        'toggleActif',
-    ])->name('sites.toggle-actif');
+        'toggleActive',
+    ])->name('sites.toggle-active');
 
     Route::get('/plugins', [PluginController::class, 'index'])->name(
         'plugins.index',
     );
-    Route::get('/plugins/{identifiant}', [PluginController::class, 'show'])->name(
+    Route::get('/plugins/{slug}', [PluginController::class, 'show'])->name(
         'plugins.show',
     );
-    Route::post('/plugins/{identifiant}/activer', [
+    Route::post('/plugins/{slug}/enable', [
         PluginController::class,
-        'activer',
-    ])->name('plugins.activer');
-    Route::post('/plugins/{identifiant}/desactiver', [
+        'enable',
+    ])->name('plugins.enable');
+    Route::post('/plugins/{slug}/disable', [
         PluginController::class,
-        'desactiver',
-    ])->name('plugins.desactiver');
+        'disable',
+    ])->name('plugins.disable');
 
     Route::get('/marketplace', [MarketplaceController::class, 'index'])->name(
         'marketplace.index',
@@ -64,10 +60,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name(
         'settings.index',
     );
-    Route::post('/settings/reglages', [
+    Route::post('/settings', [
         SettingsController::class,
-        'sauvegarderReglages',
-    ])->name('settings.reglages');
+        'update',
+    ])->name('settings.update');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name(
         'profile.edit',
