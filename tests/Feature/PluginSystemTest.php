@@ -176,6 +176,121 @@ PHP);
         }
     }
 
+    public function test_settings_are_validated_against_the_manifest_schema(): void
+    {
+        $directory = base_path('plugins/SettingsPlugin');
+        File::ensureDirectoryExists($directory.'/src');
+
+        File::put($directory.'/manifest.json', json_encode([
+            'slug' => 'settings-plugin',
+            'name' => 'Settings Plugin',
+            'version' => '1.0.0',
+            'class' => 'Plugins\\SettingsPlugin\\SettingsPlugin',
+            'settings' => [
+                ['key' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true],
+            ],
+        ]));
+
+        File::put($directory.'/src/SettingsPlugin.php', <<<'PHP'
+<?php
+
+namespace Plugins\SettingsPlugin;
+
+use App\Plugins\AbstractPlugin;
+
+class SettingsPlugin extends AbstractPlugin
+{
+    public function slug(): string { return 'settings-plugin'; }
+    public function name(): string { return 'Settings Plugin'; }
+    public function version(): string { return '1.0.0'; }
+}
+PHP);
+
+        try {
+            $manager = app(PluginManager::class);
+            $manager->reset();
+            $this->assertTrue($manager->enable('settings-plugin'));
+
+            $this->actingAs(User::factory()->create())
+                ->postJson('/settings', [
+                    'plugin' => 'settings-plugin',
+                    'settings' => ['email' => 'not-an-email'],
+                ])
+                ->assertStatus(422)
+                ->assertJsonPath('error', 'The settings.email field must be a valid email address.');
+
+            $this->actingAs(User::factory()->create())
+                ->postJson('/settings', [
+                    'plugin' => 'settings-plugin',
+                    'settings' => ['email' => 'owner@example.com'],
+                ])
+                ->assertOk()
+                ->assertJsonPath('success', true);
+
+            $this->assertSame(
+                'owner@example.com',
+                $manager->model('settings-plugin')?->configuration['email'] ?? null,
+            );
+        } finally {
+            File::deleteDirectory($directory);
+        }
+    }
+
+    public function test_tracker_injects_sandboxed_plugin_scripts_and_uses_etags(): void
+    {
+        $directory = base_path('plugins/TrackerPlugin');
+        File::ensureDirectoryExists($directory.'/src');
+
+        File::put($directory.'/manifest.json', json_encode([
+            'slug' => 'tracker-plugin',
+            'name' => 'Tracker Plugin',
+            'version' => '1.0.0',
+            'class' => 'Plugins\\TrackerPlugin\\TrackerPlugin',
+        ]));
+
+        File::put($directory.'/src/TrackerPlugin.php', <<<'PHP'
+<?php
+
+namespace Plugins\TrackerPlugin;
+
+use App\Plugins\AbstractPlugin;
+
+class TrackerPlugin extends AbstractPlugin
+{
+    public function slug(): string { return 'tracker-plugin'; }
+    public function name(): string { return 'Tracker Plugin'; }
+    public function version(): string { return '1.0.0'; }
+
+    public function trackerScript(): ?string
+    {
+        return 'window.pluginTrackerLoaded = true;';
+    }
+}
+PHP);
+
+        try {
+            $manager = app(PluginManager::class);
+            $manager->reset();
+            $this->assertTrue($manager->enable('tracker-plugin'));
+
+            $response = $this->get('/tracker.js');
+
+            $response->assertOk();
+            $response->assertSee('/* Plugin: tracker-plugin */', false);
+            $response->assertSee('window.pluginTrackerLoaded = true;', false);
+            $response->assertSee('[Flux Plugin Error: tracker-plugin]', false);
+
+            $etag = $response->headers->get('ETag');
+            $this->assertNotNull($etag);
+
+            $this->withHeader('If-None-Match', $etag)
+                ->get('/tracker.js')
+                ->assertStatus(304);
+        } finally {
+            File::deleteDirectory($directory);
+        }
+    }
+
     private function createPlugin(
         string $folder = 'TestPluginAlpha',
         string $slug = 'test-plugin-alpha',

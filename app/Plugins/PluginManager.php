@@ -362,7 +362,9 @@ final class PluginManager
             $code = $plugin->trackerScript();
 
             if ($code !== null && $code !== '') {
-                $script .= PHP_EOL.'// Plugin: '.$slug.PHP_EOL.$code;
+                $script .= PHP_EOL.'/* Plugin: '.$slug.' */'.PHP_EOL
+                    .'(function () { try {'.PHP_EOL.$code.PHP_EOL
+                    ."} catch (error) { console.error('[Flux Plugin Error: ".$slug."]', error); } })();".PHP_EOL;
             }
         }
 

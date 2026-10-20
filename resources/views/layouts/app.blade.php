@@ -392,6 +392,9 @@
             </div>
         </div>
 
+        @foreach(app(\App\Plugins\PluginManager::class)->scripts() as $scriptPath)
+            <script defer src="{{ asset($scriptPath) }}"></script>
+        @endforeach
         @stack('scripts')
         <script>
             function sidebar() {
