@@ -1,6 +1,6 @@
 # Flux Plugin Development Guide
 
-> **Stack**: Laravel 13 · PHP 8.3 · Alpine.js · Vanilla CSS (BEM)  
+> **Stack**: Laravel 13 · PHP 8.3 · vanilla ES modules · Vanilla CSS (BEM)  
 > **Goal**: extend Flux without modifying its core.
 
 Plugins are self-contained packages stored in `plugins/`. Flux discovers them lazily from their `manifest.json`, then only instantiates the classes of enabled plugins.
@@ -262,6 +262,19 @@ In Blade:
 @hook('dashboard.widgets')
 ```
 
+Core views expose these hooks:
+
+| Hook | Location |
+|---|---|
+| `dashboard.widgets` | Dashboard overview |
+| `dashboard.toolbar` | Dashboard toolbar |
+| `tab.{id}` | Dashboard plugin tabs |
+| `layout.sidebar.after` | Below sidebar navigation |
+| `layout.topbar.actions` | Top bar actions |
+| `site.show.after` | Site details page |
+| `plugin.show.after` | Plugin details page |
+| `settings.sections` | Global settings page |
+
 ### Data Filters
 
 ```php
@@ -436,17 +449,33 @@ php artisan plugin:uninstall my-plugin
 
 ## 10. UI Components
 
-Flux uses **Vanilla CSS with BEM** and **Alpine.js**. For visual consistency and dark mode support, read the [UI, Design & Styles Guide](guide_ui_design_styles.md).
+Flux uses **Vanilla CSS with BEM** and **vanilla ES modules**. There is no client-side framework. For visual consistency and dark mode support, read the [UI, Design & Styles Guide](guide_ui_design_styles.md). For JavaScript behavior and the `window.FluxAdmin` API, read the [Frontend Architecture Guide](frontend-architecture.md).
 
 Common Blade components:
 
 | Component | Usage |
 |---|---|
-| Card | `<x-card titre="Statistics">...</x-card>` |
+| Card | `<x-card title="Statistics">...</x-card>` |
 | Button | `<x-button variant="primary">Save</x-button>` |
 | Icon | `<x-custom-icon name="chart-bar" class="c-icon--md" />` |
-| Input | `<x-input name="email" label="Email" type="email" required />` |
+| Input | `<x-input name="email" label="Email" type="email" :required="true" />` |
 | Alert | `<x-alert type="warning">Warning</x-alert>` |
+
+Plugin scripts are loaded as deferred classic scripts. Use `window.FluxAdmin` and the `flux:ready` event:
+
+```js
+const init = () => {
+    document.querySelectorAll('[data-my-plugin-widget]').forEach((element) => {
+        // initialize
+    });
+};
+
+if (window.FluxAdmin?.isReady()) {
+    init();
+} else {
+    document.addEventListener('flux:ready', init, { once: true });
+}
+```
 
 ---
 

@@ -1,87 +1,174 @@
-# Guide UI, Design & Styles
+# UI, Design, and Styles Guide
 
-> **Technologies** : Vanilla CSS (BEM) · Alpine.js · CSS Variables
+> **Stack:** vanilla CSS with BEM · CSS custom properties · vanilla ES modules
+>
+> **Audience:** core contributors and plugin authors.
 
-Flux a migré d'un framework utilitaire (Tailwind CSS) vers une architecture **Vanilla CSS** basée sur la méthodologie **BEM** (Block Element Modifier). Ce guide explique comment concevoir et styliser vos plugins pour qu'ils s'intègrent nativement au design du Core.
+Flux uses a small, explicit design system. There is no utility framework and no client-side framework. Styles live in layered CSS files, and interactivity lives in focused ES modules.
 
 ---
 
-## 1. Architecture CSS (BEM)
+## 1. CSS Architecture
 
-Toutes les classes CSS de Flux suivent des préfixes stricts :
-- `p-` (Pages/Layout) : Styles structurels globaux (ex: `.p-page`, `.p-container`, `.p-grid`).
-- `c-` (Components) : Composants réutilisables (ex: `.c-btn`, `.c-input`, `.c-card`).
-- `u-` (Utilities) : Classes utilitaires simples (ex: `.u-flex`, `.u-mb-0`, `.u-text-center`).
+All styles are imported from `resources/css/app.css` in this layer order:
 
-**Règle d'or :** N'utilisez **jamais** de styles en ligne (`style="..."`).
-
-## 2. Le Mode Sombre (Dark Mode)
-
-Flux gère dynamiquement le basculement Clair/Sombre via un système de variables CSS défini dans `resources/css/variables.css`.
-
-Le mode sombre est activé lorsque l'attribut `data-theme="dark"` est présent sur la balise `<html>`.
-
-### Les Variables Sémantiques
-
-Pour que votre plugin supporte instantanément le Dark Mode, utilisez **exclusivement** les variables CSS du Core pour vos couleurs :
-
-- **Surfaces & Fonds** : `var(--surface-white)`, `var(--gray-50)`, `var(--gray-900)`
-- **Bordures** : `var(--gray-200)`, `var(--gray-300)`
-- **Textes** : `var(--gray-500)` (secondaire), `var(--gray-900)` (principal)
-- **Couleurs sémantiques** :
-  - Succès : `var(--success-bg)`, `var(--success-border)`, `var(--success-text)`
-  - Erreur : `var(--error-bg)`, `var(--error-border)`, `var(--error-text)`
-  - Warning : `var(--warning-bg)`, `var(--warning-border)`, `var(--warning-text)`
-  - Info : `var(--info-bg)`, `var(--info-border)`, `var(--info-text)`
-
-*Exemple de CSS de plugin :*
 ```css
-/* plugins/MonPlugin/resources/assets/style.css */
-.c-mon-plugin-box {
+@layer tokens, base, layouts, components, pages, utilities;
+```
+
+```
+resources/css/
+├── app.css
+├── tokens/
+│   ├── colors.css       color and semantic tokens
+│   └── design.css       spacing, radii, typography, transitions
+├── base/
+│   └── reset.css
+├── layouts/
+│   ├── app.css
+│   └── guest.css
+├── components/
+│   ├── alert.css
+│   ├── button.css
+│   ├── card.css
+│   ├── input.css
+│   ├── modal.css
+│   └── ...
+├── pages/
+│   ├── common.css
+│   ├── dashboard.css
+│   ├── marketplace.css
+│   └── auth.css
+└── utilities/
+    └── utilities.css
+```
+
+Use the prefix that matches the scope:
+
+- `p-` for page and layout structure, such as `.p-page`, `.p-container`, `.p-grid`.
+- `c-` for reusable components, such as `.c-btn`, `.c-input`, `.c-card`.
+- `u-` for small utilities, such as `.u-flex`, `.u-mb-0`, `.u-text-center`.
+
+**Never use inline `style="..."` attributes in Blade views.** Add a class in the appropriate CSS layer instead. Dynamic values set by JavaScript, such as chart colors or progress width, are allowed.
+
+---
+
+## 2. Design Tokens
+
+Use tokens instead of hard-coded colors:
+
+- Surfaces: `var(--surface-white)`, `var(--gray-50)`, `var(--gray-900)`.
+- Borders: `var(--gray-200)`, `var(--gray-300)`.
+- Text: `var(--gray-500)` for secondary text, `var(--gray-900)` for primary text.
+- Success: `var(--success-bg)`, `var(--success-border)`, `var(--success-text)`.
+- Error: `var(--error-bg)`, `var(--error-border)`, `var(--error-text)`.
+- Warning: `var(--warning-bg)`, `var(--warning-border)`, `var(--warning-text)`.
+- Information: `var(--info-bg)`, `var(--info-border)`, `var(--info-text)`.
+
+Chart and map colors also use tokens, including `--chart-traffic-1`, `--chart-traffic-2`, `--chart-events`, `--chart-1` through `--chart-5`, `--chart-device-1` through `--chart-device-4`, and the `--map-*` tokens.
+
+---
+
+## 3. Dark Mode
+
+Dark mode is applied by setting `data-theme="dark"` on the `<html>` element. The preference is stored under the existing `theme` localStorage key.
+
+A small boot script in `resources/views/layouts/partials/head.blade.php` applies the stored theme before the page renders to prevent flashing. Do not replace it with a deferred module.
+
+Use semantic tokens exclusively so plugin styles support both themes automatically:
+
+```css
+/* plugins/MyPlugin/resources/assets/style.css */
+.c-my-plugin-box {
     background-color: var(--surface-white);
     border: 1px solid var(--gray-200);
     color: var(--gray-900);
 }
-.c-mon-plugin-box:hover {
+
+.c-my-plugin-box:hover {
     background-color: var(--gray-50);
 }
 ```
 
-## 3. Composants Blade du Core
+---
 
-Plutôt que de recréer de l'UI, utilisez les composants Blade fournis par le Core. Ils gèrent automatiquement l'accessibilité et le Dark Mode.
+## 4. Core Blade Components
 
-- **Boutons** : `<x-button variant="primary">` (variantes: primary, secondary, danger, ghost)
-- **Champs de formulaire** : `<x-input>`, `<x-select>` (ils incluent automatiquement les labels et les styles d'erreur)
-- **Cartes** : `<x-card titre="Mon Titre">`
-- **Alertes** : `<x-alert type="info">` (types: success, erreur, warning, info)
-- **Icônes** : `<x-custom-icon name="chart-bar" class="c-icon--md" />` (utilise Heroicons)
+Prefer the core components over custom markup. They already handle accessibility, errors, and dark mode.
 
-## 4. Ajouter du CSS personnalisé à votre Plugin
+| Component | Usage |
+|---|---|
+| Button | `<x-button variant="primary">Save</x-button>` |
+| Button link | `<x-button href="{{ route('sites.index') }}">Cancel</x-button>` |
+| Input | `<x-input name="email" label="Email" type="email" :required="true" />` |
+| Card | `<x-card title="Statistics">...</x-card>` |
+| Stats card | `<x-stats-card title="Visits" :value="$count" icon="chart-bar" />` |
+| Alert | `<x-alert type="warning" message="Check this value." />` |
+| Modal | `<x-modal name="confirm-modal">...</x-modal>` |
+| Dropdown | `<x-dropdown>...</x-dropdown>` |
+| Icon | `<x-custom-icon name="chart-bar" class="c-icon--md" />` |
 
-Si les composants du Core ne suffisent pas, vous pouvez ajouter vos propres styles :
+Button variants are `primary`, `danger`, and `default`. Button sizes are `sm`, `md`, and `lg`. Alert types are `success`, `error`, `warning`, and `info`.
 
-1. Créez un fichier `resources/assets/style.css` dans le dossier de votre plugin.
-2. Écrivez votre CSS en respectant la convention BEM.
-3. Flux copiera automatiquement ce fichier dans le dossier `public/` lors de l'activation de votre plugin, et l'injectera dans le `<head>` de toutes les pages d'administration.
-
-## 5. Interactivité (Alpine.js)
-
-Flux n'utilise ni React, ni Vue, ni jQuery. Toute l'interactivité frontend est gérée par **Alpine.js**.
-
-- Alpine est déjà chargé globalement sur la page (`window.Alpine`).
-- Utilisez les directives standard (`x-data`, `x-show`, `x-on:click`, etc.) directement dans vos vues Blade.
-- Pour les composants complexes, extrayez la logique dans un tag `<script>` en bas de votre vue Blade.
+Open and close modals with data attributes or the JavaScript API:
 
 ```blade
-<div x-data="{ ouvert: false }">
-    <x-button @click="ouvert = !ouvert">Basculer</x-button>
-    
-    <div x-show="ouvert" x-cloak class="p-mt-3">
-        Contenu masqué...
-    </div>
-</div>
+<x-button data-modal-open="confirm-modal">Open</x-button>
+
+<x-modal name="confirm-modal">
+    <x-button data-modal-close="confirm-modal">Close</x-button>
+</x-modal>
 ```
 
-> [!NOTE]
-> La balise `x-cloak` est gérée nativement par le Core pour éviter les flashs de contenu non stylisé (FOUC).
+```js
+window.FluxAdmin.modal.open('confirm-modal');
+window.FluxAdmin.modal.close('confirm-modal');
+```
+
+---
+
+## 5. Plugin CSS
+
+If the core components are not enough, publish plugin-specific CSS:
+
+1. Create `resources/assets/style.css` inside your plugin.
+2. Follow the BEM convention and use CSS tokens.
+3. Return the published path from the plugin's `stylesheets()` method.
+
+```php
+public function stylesheets(): array
+{
+    return ['plugin-assets/my-plugin/style.css'];
+}
+```
+
+Flux copies the file to `public/plugin-assets/{slug}/` and injects it into the admin `<head>`.
+
+---
+
+## 6. Frontend Interactivity
+
+Flux does not use React, Vue, jQuery, or Alpine.js. Behavior is implemented with vanilla ES modules.
+
+- Core modules live in `resources/js/core/`.
+- Reusable behaviors live in `resources/js/components/`.
+- Page-specific modules live in `resources/js/pages/`.
+- Use data attributes, not inline event handlers such as `onclick` or `@click`.
+- Expose reusable behavior through `window.FluxAdmin`.
+- Listen for `flux:ready` when plugin code needs the core API.
+
+```js
+const init = () => {
+    document.querySelectorAll('[data-my-widget]').forEach((element) => {
+        // initialize widget
+    });
+};
+
+if (window.FluxAdmin?.isReady()) {
+    init();
+} else {
+    document.addEventListener('flux:ready', init, { once: true });
+}
+```
+
+See [Frontend Architecture](frontend-architecture.md) for module conventions, events, and the `FluxAdmin` API.
