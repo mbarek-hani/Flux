@@ -13,7 +13,7 @@ class MarketplaceController extends Controller
     public function __construct(private MarketplaceService $service, private PluginManager $manager) {}
 
     /**
-     * Liste et recherche les plugins du Marketplace.
+     * List and search Marketplace plugins.
      */
     public function index(Request $request)
     {
@@ -60,7 +60,7 @@ class MarketplaceController extends Controller
     }
 
     /**
-     * Affiche les détails d'un plugin du Marketplace.
+     * Display Marketplace plugin details.
      */
     public function show(string $id)
     {
@@ -117,7 +117,7 @@ class MarketplaceController extends Controller
     }
 
     /**
-     * Stream SSE pour l'installation d'un plugin.
+     * SSE stream for plugin installation.
      */
     public function streamInstall(string $id): StreamedResponse
     {
@@ -135,8 +135,8 @@ class MarketplaceController extends Controller
                     $sendEvent($message, $progress, 'progress');
                 });
 
-                // Envoyer l'événement de succès final pour que le client sache que c'est terminé
-                $sendEvent('Installation terminée avec succès !', 100, 'success');
+                // Send the final success event so the client knows the operation is complete
+                $sendEvent('Installation completed successfully.', 100, 'success');
             } catch (\Throwable $e) {
                 $sendEvent('Erreur : '.$e->getMessage(), 100, 'error');
             }
@@ -149,7 +149,7 @@ class MarketplaceController extends Controller
     }
 
     /**
-     * Stream SSE pour la mise à jour d'un plugin.
+     * SSE stream for plugin updates.
      */
     public function streamUpdate(string $id): StreamedResponse
     {
@@ -167,8 +167,8 @@ class MarketplaceController extends Controller
                     $sendEvent($message, $progress, 'progress');
                 });
 
-                // Envoyer l'événement de succès final pour que le client sache que c'est terminé
-                $sendEvent('Mise à jour terminée avec succès !', 100, 'success');
+                // Send the final success event so the client knows the operation is complete
+                $sendEvent('Update completed successfully.', 100, 'success');
             } catch (\Throwable $e) {
                 $sendEvent('Erreur : '.$e->getMessage(), 100, 'error');
             }
@@ -181,7 +181,7 @@ class MarketplaceController extends Controller
     }
 
     /**
-     * Stream SSE pour la désinstallation d'un plugin.
+     * SSE stream for plugin uninstallation.
      */
     public function streamUninstall(string $id): StreamedResponse
     {
@@ -199,8 +199,8 @@ class MarketplaceController extends Controller
                     $sendEvent($message, $progress, 'progress');
                 });
 
-                // Envoyer l'événement de succès final pour que le client sache que c'est terminé
-                $sendEvent('Désinstallation terminée avec succès !', 100, 'success');
+                // Send the final success event so the client knows the operation is complete
+                $sendEvent('Uninstallation completed successfully.', 100, 'success');
             } catch (\Throwable $e) {
                 $sendEvent('Erreur : '.$e->getMessage(), 100, 'error');
             }

@@ -82,7 +82,7 @@ class PluginSystemTest extends TestCase
         $response->assertOk();
         $response->assertSee('Test Plugin Alpha');
         $response->assertSee('v1.0.0');
-        $response->assertSee('Inactif');
+        $response->assertSee('Inactive');
     }
 
     public function test_inactive_plugin_classes_are_not_instantiated_on_boot(): void

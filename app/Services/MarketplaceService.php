@@ -12,7 +12,7 @@ use ZipArchive;
 
 class MarketplaceService
 {
-    private const string ERROR = 'Impossible de se connecter au registre de plugins. Veuillez vérifier votre connexion ou réessayer plus tard.';
+    private const string ERROR = 'Unable to connect to the plugin registry. Check your connection and try again later.';
 
     private string $registryUrl;
 
@@ -22,7 +22,7 @@ class MarketplaceService
     }
 
     /**
-     * Obtenir la liste des plugins du registre (paginée et filtrée).
+     * Get the paginated and filtered plugin list from the registry.
      */
     public function getPlugins(
         string $search = '',
@@ -42,10 +42,10 @@ class MarketplaceService
             if ($response->successful()) {
                 return $response->json();
             }
-            throw new Exception('Code HTTP '.$response->status().' retourné par le registre');
+            throw new Exception('The registry returned HTTP status '.$response->status());
         } catch (\Throwable $e) {
             Log::error(
-                'Erreur de communication avec le registre : '.
+                'Unable to communicate with the registry: '.
                     $e->getMessage(),
             );
             throw new Exception(static::ERROR);
@@ -53,7 +53,7 @@ class MarketplaceService
     }
 
     /**
-     * Obtenir les détails d'un plugin.
+     * Get plugin details.
      */
     public function getPluginDetails(string $id): array
     {
@@ -64,15 +64,15 @@ class MarketplaceService
             if ($response->successful()) {
                 return $response->json('data');
             }
-            throw new Exception('Code HTTP '.$response->status().' retourné par le registre');
+            throw new Exception('The registry returned HTTP status '.$response->status());
         } catch (\Throwable $e) {
-            Log::error('Erreur détails plugin : '.$e->getMessage());
+            Log::error('Unable to load plugin details: '.$e->getMessage());
             throw new Exception(static::ERROR);
         }
     }
 
     /**
-     * Installer ou mettre à jour un plugin.
+     * Install or update a plugin.
      */
     public function installerPlugin(
         PluginManager $manager,
@@ -81,51 +81,51 @@ class MarketplaceService
     ): bool {
         $localPlugin = Plugin::where('identifiant', $pluginId)->first();
         $isUpdate = $localPlugin && $localPlugin->installe_le !== null;
-        $actionNoun = $isUpdate ? 'la mise à jour' : "l'installation";
-        
-        // Étape 1 : Connexion au registre
-        $onProgress('Connexion au registre FluxHUB...', 10);
+        $actionName = $isUpdate ? 'update' : 'installation';
 
-        // Étape 2 : Récupérer la clé publique
-        $onProgress('Récupération de la clé publique de signature...', 20);
+        // Step 1: Connect to the registry
+        $onProgress('Connecting to the FluxHUB registry...', 10);
+
+        // Step 2: Retrieve the public key
+        $onProgress('Retrieving the signing public key...', 20);
         try {
             $keyResponse = Http::timeout(10)->get(
                 "{$this->registryUrl}/v1/public-key",
             );
             if (! $keyResponse->successful()) {
                 throw new Exception(
-                    'Impossible de récupérer la clé publique du registre',
+                    'Unable to retrieve the registry public key.',
                 );
             }
             $publicKeyPEM = $keyResponse->body();
         } catch (\Throwable $e) {
             throw new Exception(
-                'Échec de la récupération de la clé publique : '.
+                'Unable to retrieve the public key: '.
                     $e->getMessage(),
             );
         }
 
-        // Étape 3 : Télécharger l'archive du plugin
-        $onProgress("Téléchargement de l'archive pour " . $actionNoun . "...", 40);
+        // Step 3: Download the plugin archive
+        $onProgress("Downloading the archive for {$actionName}...", 40);
         try {
             $downloadResponse = Http::timeout(30)->get(
                 "{$this->registryUrl}/v1/marketplace/plugins/{$pluginId}/download",
             );
             if (! $downloadResponse->successful()) {
                 throw new Exception(
-                    'Impossible de télécharger le package du plugin : Code '.
+                    'Unable to download the plugin package. HTTP status: '.
                         $downloadResponse->status(),
                 );
             }
             $zipPayload = $downloadResponse->body();
         } catch (\Throwable $e) {
             throw new Exception(
-                'Échec du téléchargement du package : '.$e->getMessage(),
+                'Unable to download the package: '.$e->getMessage(),
             );
         }
 
-        // Étape 4 : Extraction des en-têtes
-        $onProgress('Vérification des en-têtes de sécurité...', 60);
+        // Step 4: Read the response headers
+        $onProgress('Checking security headers...', 60);
         $serverHash = $downloadResponse->header('X-Plugin-SHA256');
         $serverSignature = $downloadResponse->header('X-Plugin-Signature');
         $pluginName = $downloadResponse->header('X-Plugin-Name');
@@ -133,25 +133,25 @@ class MarketplaceService
 
         if (! $serverHash || ! $serverSignature) {
             throw new Exception(
-                'En-têtes de sécurité cryptographique manquants dans la réponse du registre',
+                'The registry response is missing cryptographic security headers.',
             );
         }
 
-        // Étape 5 : Validation SHA256
-        $onProgress("Vérification de l'intégrité SHA-256...", 75);
+        // Step 5: Validate the SHA-256 hash
+        $onProgress('Verifying SHA-256 integrity...', 75);
         $localHash = hash('sha256', $zipPayload);
         if (! hash_equals($serverHash, $localHash)) {
             throw new Exception(
-                "Échec de la vérification d'intégrité : L'empreinte locale ne correspond pas aux métadonnées du serveur.",
+                'Integrity check failed: the local hash does not match the server metadata.',
             );
         }
 
-        // Étape 6 : Validation Signature
-        $onProgress('Vérification de la signature RSA cryptographique...', 85);
+        // Step 6: Validate the signature
+        $onProgress('Verifying the cryptographic RSA signature...', 85);
         $publicKey = openssl_pkey_get_public($publicKeyPEM);
         if (! $publicKey) {
             throw new Exception(
-                'Impossible de charger la clé publique RSA du registre',
+                'Unable to load the registry RSA public key.',
             );
         }
         $signatureBytes = base64_decode($serverSignature);
@@ -163,17 +163,17 @@ class MarketplaceService
         );
         if ($verifyResult !== 1) {
             throw new Exception(
-                'Échec de la vérification cryptographique : La signature est invalide ou le fichier a été altéré !',
+                'Cryptographic verification failed: the signature is invalid or the file has been tampered with.',
             );
         }
 
-        // Étape 7 : Extraction zip
+        // Step 7: Extract the ZIP archive
         $onProgress(
-            $isUpdate ? 'Décompression et application de la mise à jour des fichiers du plugin...' : 'Décompression et installation des fichiers du plugin...',
+            $isUpdate ? 'Extracting and applying the plugin file update...' : 'Extracting and installing the plugin files...',
             90,
         );
 
-        // Dossier temporaire pour l'extraction
+        // Temporary extraction directory
         $tempDir = storage_path('app/plugins/extracted_tmp_'.$pluginId);
         if (File::exists($tempDir)) {
             File::deleteDirectory($tempDir);
@@ -190,19 +190,19 @@ class MarketplaceService
         } else {
             File::deleteDirectory($tempDir);
             throw new Exception(
-                "Impossible d'ouvrir l'archive zip téléchargée",
+                'Unable to open the downloaded ZIP archive.',
             );
         }
         File::delete($tempZipPath);
 
-        // Trouver le manifest.json
+        // Locate manifest.json
         $manifestPath = null;
         $extractedFilesDir = $tempDir;
 
         if (File::exists($tempDir.'/manifest.json')) {
             $manifestPath = $tempDir.'/manifest.json';
         } else {
-            // Chercher dans les sous-dossiers
+            // Search the subdirectories
             $dirs = File::directories($tempDir);
             if (
                 count($dirs) === 1 &&
@@ -216,33 +216,33 @@ class MarketplaceService
         if (! $manifestPath) {
             File::deleteDirectory($tempDir);
             throw new Exception(
-                "Le fichier 'manifest.json' est introuvable dans le package du plugin",
+                "The plugin package does not contain a 'manifest.json' file.",
             );
         }
 
-        // Lire le manifest pour extraire la classe
+        // Read the manifest to extract the plugin class
         $manifestContent = json_decode(File::get($manifestPath), true);
         if (! $manifestContent || ! isset($manifestContent['classe'])) {
             File::deleteDirectory($tempDir);
             throw new Exception(
-                "Le fichier 'manifest.json' est invalide ou ne contient pas la clé 'classe'",
+                "The 'manifest.json' file is invalid or does not contain the 'classe' key.",
             );
         }
 
-        // Déterminer le dossier cible
-        $classePlugin = $manifestContent['classe'];
-        $parties = explode('\\', trim($classePlugin, '\\'));
-        if (count($parties) < 2 || $parties[0] !== 'Plugins') {
+        // Determine the target directory
+        $pluginClass = $manifestContent['classe'];
+        $parts = explode('\\', trim($pluginClass, '\\'));
+        if (count($parts) < 2 || $parts[0] !== 'Plugins') {
             File::deleteDirectory($tempDir);
             throw new Exception(
-                'Namespace du plugin invalide : '.$classePlugin,
+                'Invalid plugin namespace: '.$pluginClass,
             );
         }
 
-        $folderName = $parties[1];
+        $folderName = $parts[1];
         $targetDir = base_path('plugins/'.$folderName);
 
-        $pluginIdentifiant = $manifestContent['identifiant'] ?? $folderName;
+        $pluginIdentifier = $manifestContent['identifiant'] ?? $folderName;
         $runMigrations = true;
 
         if ($isUpdate && $localPlugin) {
@@ -250,87 +250,87 @@ class MarketplaceService
             $newVersion = $manifestContent['version'] ?? $pluginVersion;
             
             if ($this->hasMajorVersionChange($oldVersion, $newVersion)) {
-                $onProgress('Mise à jour majeure détectée. Suppression des anciennes données...', 88);
-                $manager->desinstaller($pluginIdentifiant);
+                $onProgress('Major update detected. Removing legacy data...', 88);
+                $manager->desinstaller($pluginIdentifier);
             } else {
                 $runMigrations = false;
             }
         }
 
-        // Si le dossier existe déjà (mise à jour), on le supprime
+        // Remove the existing directory before an update
         if (File::exists($targetDir)) {
             File::deleteDirectory($targetDir);
         }
 
-        // S'assurer que le dossier base_path('plugins') existe
+        // Ensure the base plugins directory exists
         if (! File::exists(base_path('plugins'))) {
             File::makeDirectory(base_path('plugins'), 0755, true);
         }
 
-        // Déplacer les fichiers du plugin
+        // Move the plugin files into place
         File::moveDirectory($extractedFilesDir, $targetDir, true);
         File::deleteDirectory($tempDir);
 
-        // Étape 8 : Enregistrer en BDD
-        $onProgress($isUpdate ? 'Mise à jour de la base de données...' : 'Enregistrement en base de données...', 91);
+        // Step 8: Persist the plugin state
+        $onProgress($isUpdate ? 'Updating the database...' : 'Saving to the database...', 91);
 
-        // Supprimer l'ancien enregistrement s'il existe (pour le cas des mises à jour non-majeures)
-        Plugin::where('identifiant', $pluginIdentifiant)->delete();
+        // Remove the previous record for non-major updates
+        Plugin::where('identifiant', $pluginIdentifier)->delete();
 
         $plugin = Plugin::create([
-            'identifiant' => $pluginIdentifiant,
+            'identifiant' => $pluginIdentifier,
             'nom' => $manifestContent['nom'] ?? $pluginName,
             'version' => $manifestContent['version'] ?? $pluginVersion,
             'description' => $manifestContent['description'] ?? '',
-            'auteur' => $manifestContent['auteur'] ?? $manifestContent['author'] ?? 'Inconnu',
+            'auteur' => $manifestContent['auteur'] ?? $manifestContent['author'] ?? 'Unknown',
             'actif' => true,
             'metadonnees' => $manifestContent,
             'installe_le' => now(),
         ]);
 
-        // Réinitialiser le gestionnaire pour découvrir le nouveau plugin sur le disque
+        // Reload the manager so it discovers the plugin on disk
         $manager->initialiser();
 
         $manager->installer($plugin->identifiant, $runMigrations);
 
-        $onProgress($isUpdate ? 'Mise à jour réussie !' : 'Installation réussie !', 100);
+        $onProgress($isUpdate ? 'Update completed successfully.' : 'Installation completed successfully.', 100);
 
         return true;
     }
 
     /**
-     * Désinstaller un plugin.
+     * Uninstall a plugin.
      */
     public function desinstallerPlugin(
         PluginManager $manager,
         string $pluginId,
         callable $onProgress,
     ): bool {
-        $onProgress('Recherche du plugin dans le système...', 15);
+        $onProgress('Looking up the plugin in the system...', 15);
         $remoteDetails = $this->getPluginDetails($pluginId);
         if ($remoteDetails && isset($remoteDetails['id'])) {
             $plugin = Plugin::where('identifiant', $remoteDetails['id'])->first();
         }
         if (! $plugin) {
             throw new Exception(
-                "Le plugin n'est pas répertorié dans le système",
+                'The plugin is not registered in the system.',
             );
         }
 
-        // Étape 1 : Désinstallation du plugin dans le manager
-        $onProgress('Désinstallation du plugin...', 40);
+        // Step 1: Uninstall the plugin through the manager
+        $onProgress('Uninstalling the plugin...', 40);
         $manager->desinstaller($plugin->identifiant);
 
-        // Étape 2 : Suppression des fichiers du plugin
-        $onProgress('Suppression des fichiers du plugin...', 75);
+        // Step 2: Remove the plugin files
+        $onProgress('Removing plugin files...', 75);
         $folderName = null;
         if (isset($plugin->metadonnees['classe'])) {
-            $parties = explode(
+            $parts = explode(
                 '\\',
                 trim($plugin->metadonnees['classe'], '\\'),
             );
-            if (count($parties) >= 2) {
-                $folderName = $parties[1];
+            if (count($parts) >= 2) {
+                $folderName = $parts[1];
             }
         }
 
@@ -341,11 +341,11 @@ class MarketplaceService
             }
         }
 
-        // Étape 3 : Mise à jour de la base de données
-        $onProgress('Nettoyage de la base de données...', 95);
+        // Step 3: Update the database
+        $onProgress('Cleaning up the database...', 95);
         $plugin->delete();
 
-        $onProgress('Désinstallation réussie !', 100);
+        $onProgress('Uninstallation completed successfully.', 100);
 
         return true;
     }
@@ -365,7 +365,7 @@ class MarketplaceService
         return [
             'id' => $remote['id'],
             'nom' => $remote['name'],
-            'author' => $remote['author'] ?? 'Inconnu',
+            'author' => $remote['author'] ?? 'Unknown',
             'description' => $remote['description'] ?? '',
             'current_version' => $currentVersion,
             'total_downloads' => $remote['total_downloads'] ?? 0,
