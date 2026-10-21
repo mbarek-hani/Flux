@@ -14,6 +14,7 @@ import { initSidebar } from './components/sidebar';
 import { initTabs } from './components/tabs';
 import { initThemeSwitchers } from './components/theme-switcher';
 import { initDashboard } from './pages/dashboard';
+import { initMarketplace } from './pages/marketplace';
 import { initSettings } from './pages/settings';
 import { isReady, markReady, onReady } from './core/ready';
 import { currentTheme, setTheme } from './core/theme';
@@ -34,6 +35,7 @@ export function initComponents(root = document) {
     initTabs(root);
     initThemeSwitchers(root);
     initDashboard(root);
+    initMarketplace(root);
     initSettings(root);
 }
 
