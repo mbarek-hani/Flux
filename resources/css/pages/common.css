@@ -338,6 +338,10 @@
     display: inline-flex;
 }
 
+.p-pagination-separator {
+    padding: 0 0.5rem;
+}
+
 /* Flex row helpers */
 .p-row {
     display: flex;

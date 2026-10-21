@@ -1,4 +1,3 @@
-import Alpine from 'alpinejs';
 import Chart from 'chart.js/auto';
 import jsVectorMap from 'jsvectormap';
 import 'jsvectormap/dist/maps/world.js';
@@ -21,7 +20,6 @@ import { currentTheme, setTheme } from './core/theme';
 
 window.Chart = Chart;
 window.jsVectorMap = jsVectorMap;
-window.Alpine = Alpine;
 
 export function initComponents(root = document) {
     setupModalGlobalListeners();
@@ -63,5 +61,3 @@ if (document.readyState === 'loading') {
 } else {
     boot();
 }
-
-Alpine.start();

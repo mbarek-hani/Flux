@@ -15,10 +15,6 @@
         <link rel="stylesheet" href="{{ asset($cssPath) }}">
     @endforeach
 
-    <style>
-        [x-cloak] { display: none !important; }
-    </style>
-
     <script>
         (function () {
             const storedTheme = localStorage.getItem('theme');

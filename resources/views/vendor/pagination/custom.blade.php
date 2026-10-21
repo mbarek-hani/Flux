@@ -3,14 +3,14 @@
         <div class="p-row">
             {{-- Previous Page Link --}}
             @if ($paginator->onFirstPage())
-                <x-button size="sm" variant="default" disabled style="opacity: 0.5; cursor: not-allowed;">
+                <x-button size="sm" variant="default" disabled>
                     <x-custom-icon name="chevron-left" class="c-icon--xs" />
-                    <span class="u-hidden-mobile">Précédent</span>
+                    <span class="u-hidden-mobile">Previous</span>
                 </x-button>
             @else
                 <x-button :href="$paginator->previousPageUrl()" size="sm" variant="default" rel="prev">
                     <x-custom-icon name="chevron-left" class="c-icon--xs" />
-                    <span class="u-hidden-mobile">Précédent</span>
+                    <span class="u-hidden-mobile">Previous</span>
                 </x-button>
             @endif
         </div>
@@ -20,7 +20,7 @@
             @foreach ($elements as $element)
                 {{-- "Three Dots" Separator --}}
                 @if (is_string($element))
-                    <span class="p-text--xs u-text-gray-400" style="padding: 0 0.5rem;">{{ $element }}</span>
+                    <span class="p-text--xs u-text-gray-400 p-pagination-separator">{{ $element }}</span>
                 @endif
 
                 {{-- Array Of Links --}}
@@ -44,12 +44,12 @@
             {{-- Next Page Link --}}
             @if ($paginator->hasMorePages())
                 <x-button :href="$paginator->nextPageUrl()" size="sm" variant="default" rel="next">
-                    <span class="u-hidden-mobile">Suivant</span>
+                    <span class="u-hidden-mobile">Next</span>
                     <x-custom-icon name="chevron-right" class="c-icon--xs" />
                 </x-button>
             @else
-                <x-button size="sm" variant="default" disabled style="opacity: 0.5; cursor: not-allowed;">
-                    <span class="u-hidden-mobile">Suivant</span>
+                <x-button size="sm" variant="default" disabled>
+                    <span class="u-hidden-mobile">Next</span>
                     <x-custom-icon name="chevron-right" class="c-icon--xs" />
                 </x-button>
             @endif

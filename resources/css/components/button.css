@@ -1,5 +1,10 @@
 @layer components {
 
+.c-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .c-btn {
     display: inline-flex;
     align-items: center;
