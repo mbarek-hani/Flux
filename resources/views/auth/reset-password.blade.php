@@ -1,5 +1,5 @@
 <x-guest-layout>
-    <h2 class="p-auth__title">Réinitialiser le mot de passe</h2>
+    <h2 class="p-auth__title">Reset password</h2>
 
     <form method="POST" action="{{ route('password.store') }}">
         @csrf
@@ -8,7 +8,7 @@
         <div class="p-auth__form-group">
             <x-input
                 name="email"
-                label="Adresse e-mail"
+                label="Email address"
                 type="email"
                 :required="true"
                 :value="old('email', $request->email)"
@@ -17,7 +17,7 @@
 
             <x-input
                 name="password"
-                label="Nouveau mot de passe"
+                label="New password"
                 type="password"
                 :required="true"
                 autocomplete="new-password"
@@ -25,7 +25,7 @@
 
             <x-input
                 name="password_confirmation"
-                label="Confirmer le mot de passe"
+                label="Confirm password"
                 type="password"
                 :required="true"
                 autocomplete="new-password"
@@ -34,7 +34,7 @@
 
         <div class="p-auth__submit">
             <x-button variant="primary" type="submit">
-                Réinitialiser
+                Reset password
             </x-button>
         </div>
     </form>

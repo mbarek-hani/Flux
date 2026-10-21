@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="title">
-        Profil
+        Profile
     </x-slot>
     <div class="p-page">
         <div class="p-container p-container--sm p-stack">

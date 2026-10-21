@@ -1,7 +1,7 @@
 <x-card>
     <div class="p-section__header">
-        <h3 class="p-section__title">Mot de passe</h3>
-        <p class="p-section__subtitle">Utilisez un mot de passe long et unique.</p>
+        <h3 class="p-section__title">Password</h3>
+        <p class="p-section__subtitle">Use a long, unique password.</p>
     </div>
 
     <form method="post" action="{{ route('password.update') }}">
@@ -11,7 +11,7 @@
         <div class="p-form-group">
             <x-input
                 name="current_password"
-                label="Mot de passe actuel"
+                label="Current password"
                 type="password"
                 :required="true"
                 autocomplete="current-password"
@@ -19,7 +19,7 @@
 
             <x-input
                 name="password"
-                label="Nouveau mot de passe"
+                label="New password"
                 type="password"
                 :required="true"
                 autocomplete="new-password"
@@ -27,7 +27,7 @@
 
             <x-input
                 name="password_confirmation"
-                label="Confirmer le mot de passe"
+                label="Confirm password"
                 type="password"
                 :required="true"
                 autocomplete="new-password"
@@ -36,12 +36,12 @@
 
         <div class="p-card-footer">
             <x-button variant="primary" size="sm" type="submit">
-                Mettre à jour
+                Update password
             </x-button>
 
             @if(session('status') === 'password-updated')
-                <span class="p-flash--success" x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" x-transition>
-                    Mis à jour.
+                <span class="p-flash p-flash--success" data-flash data-flash-timeout="3000">
+                    Password updated.
                 </span>
             @endif
         </div>

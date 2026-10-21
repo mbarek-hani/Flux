@@ -1,7 +1,7 @@
 <x-guest-layout>
-    <h2 class="p-auth__title">Mot de passe oublié</h2>
+    <h2 class="p-auth__title">Forgot password</h2>
     <p class="p-auth__text">
-        Entrez votre adresse e-mail et nous vous enverrons un lien de réinitialisation.
+        Enter your email address and we will send you a password reset link.
     </p>
 
     @if(session('status'))
@@ -16,7 +16,7 @@
         <div class="p-auth__form-group">
             <x-input
                 name="email"
-                label="Adresse e-mail"
+                label="Email address"
                 type="email"
                 :required="true"
                 :value="old('email')"
@@ -26,13 +26,13 @@
 
         <div class="p-auth__submit">
             <x-button variant="primary" type="submit">
-                Envoyer le lien
+                Send reset link
             </x-button>
         </div>
 
         <p class="p-auth__footer">
             <a href="{{ route('login') }}" class="p-auth__link">
-                Retour à la connexion
+                Back to sign in
             </a>
         </p>
     </form>

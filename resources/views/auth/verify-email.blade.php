@@ -1,27 +1,27 @@
 <x-guest-layout>
-    <h2 class="p-auth__title">Vérification de l'e-mail</h2>
+    <h2 class="p-auth__title">Verify email</h2>
     <p class="p-auth__text">
-        Merci de vérifier votre adresse e-mail en cliquant sur le lien que nous venons de vous envoyer.
+        Thanks for signing up. Please verify your email address by clicking the link we just sent you.
     </p>
 
     @if(session('status') == 'verification-link-sent')
         <div class="p-auth__status">
-            Un nouveau lien de vérification a été envoyé.
+            A new verification link has been sent.
         </div>
     @endif
 
     <div class="p-auth__actions">
-        <form method="POST" action="{{ route('verification.send') }}" style="margin-right: 1rem;">
+        <form method="POST" action="{{ route('verification.send') }}">
             @csrf
             <x-button variant="primary" type="submit">
-                Renvoyer le lien
+                Resend verification link
             </x-button>
         </form>
 
         <form method="POST" action="{{ route('logout') }}">
             @csrf
             <x-button type="submit">
-                Déconnexion
+                Sign out
             </x-button>
         </form>
     </div>

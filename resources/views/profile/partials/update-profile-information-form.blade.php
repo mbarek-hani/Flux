@@ -1,7 +1,7 @@
 <x-card>
     <div class="p-section__header">
-        <h3 class="p-section__title">Informations du profil</h3>
-        <p class="p-section__subtitle">Mettez à jour votre nom et adresse e-mail.</p>
+        <h3 class="p-section__title">Profile information</h3>
+        <p class="p-section__subtitle">Update your name and email address.</p>
     </div>
 
     <form id="send-verification" method="post" action="{{ route('verification.send') }}">
@@ -15,7 +15,7 @@
         <div class="p-form-group">
             <x-input
                 name="name"
-                label="Nom"
+                label="Name"
                 type="text"
                 :required="true"
                 :value="old('name', $user->name)"
@@ -25,7 +25,7 @@
             <div>
                 <x-input
                     name="email"
-                    label="Adresse e-mail"
+                    label="Email address"
                     type="email"
                     :required="true"
                     :value="old('email', $user->email)"
@@ -33,18 +33,17 @@
                 />
 
                 @if($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
-                    <div class="mt-2">
+                    <div class="p-mt-2">
                         <p class="p-text--muted">
-                            Votre adresse e-mail n'est pas vérifiée.
-                            <button form="send-verification"
-                                    class="p-text--bold" style="text-decoration: underline; cursor: pointer; background: none; border: none;">
-                                Renvoyer le lien
+                            Your email address is not verified.
+                            <button form="send-verification" class="p-text--bold p-link-button">
+                                Resend verification link
                             </button>
                         </p>
 
                         @if(session('status') === 'verification-link-sent')
-                            <p class="p-flash--success p-mt-1">
-                                Un nouveau lien a été envoyé.
+                            <p class="p-flash p-flash--success p-mt-1">
+                                A new verification link has been sent.
                             </p>
                         @endif
                     </div>
@@ -54,12 +53,12 @@
 
         <div class="p-card-footer">
             <x-button variant="primary" size="sm" type="submit">
-                Sauvegarder
+                Save
             </x-button>
 
             @if(session('status') === 'profile-updated')
-                <span class="p-flash--success" x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" x-transition>
-                    Sauvegardé.
+                <span class="p-flash p-flash--success" data-flash data-flash-timeout="3000">
+                    Saved.
                 </span>
             @endif
         </div>
