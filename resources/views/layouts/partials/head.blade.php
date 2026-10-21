@@ -29,7 +29,7 @@
             const storedSidebar = localStorage.getItem('sidebar_ouvert');
             const sidebarOpen = window.innerWidth >= 1024 && storedSidebar !== 'false';
 
-            document.documentElement.dataset.sidebarOpen = sidebarOpen ? 'true' : 'false';
+            document.documentElement.dataset.sidebarState = sidebarOpen ? 'true' : 'false';
         })();
     </script>
 </head>

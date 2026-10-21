@@ -72,7 +72,7 @@ export function initSidebar(root = document) {
     let open = desktop ? storedOpen() : false;
 
     const apply = (persist = false) => {
-        document.documentElement.dataset.sidebarOpen = open ? 'true' : 'false';
+        document.documentElement.dataset.sidebarState = open ? 'true' : 'false';
 
         if (expanded) {
             expanded.hidden = !open;

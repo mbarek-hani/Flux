@@ -496,23 +496,23 @@
 }
 
 @media (min-width: 1024px) {
-    html[data-sidebar-open='false'] .l-main-wrapper {
+    html[data-sidebar-state='false'] .l-main-wrapper {
         margin-left: 3rem;
     }
 
-    html[data-sidebar-open='false'] [data-sidebar-expanded],
-    html[data-sidebar-open='true'] [data-sidebar-collapsed] {
+    html[data-sidebar-state='false'] [data-sidebar-expanded],
+    html[data-sidebar-state='true'] [data-sidebar-collapsed] {
         display: none;
     }
 
-    html[data-sidebar-open='false'] [data-sidebar-collapsed] {
+    html[data-sidebar-state='false'] [data-sidebar-collapsed] {
         display: flex;
     }
 }
 
 @media (max-width: 1023px) {
-    html[data-sidebar-open='false'] [data-sidebar-expanded],
-    html[data-sidebar-open='false'] .l-app__overlay {
+    html[data-sidebar-state='false'] [data-sidebar-expanded],
+    html[data-sidebar-state='false'] .l-app__overlay {
         display: none;
     }
 }

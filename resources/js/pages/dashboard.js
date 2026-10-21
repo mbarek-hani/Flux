@@ -639,6 +639,11 @@ function initDashboardElement(root) {
         }
 
         map?.destroy();
+        map = null;
+
+        if (element.offsetWidth === 0 || element.offsetHeight === 0) {
+            return;
+        }
 
         const values = {};
 
@@ -791,14 +796,28 @@ function initDashboardElement(root) {
     });
 
     document.addEventListener('flux:tab-changed', (event) => {
-        if (event.detail.group !== 'dashboard') {
+        if (event.detail.group !== 'dashboard' || event.detail.target !== 'overview') {
             return;
         }
 
-        window.setTimeout(() => {
+        window.requestAnimationFrame(() => {
             Object.values(charts).forEach((instance) => instance?.resize());
-            map?.updateSize?.();
-        }, 50);
+
+            const element = root.querySelector('[data-dashboard-map]');
+
+            if (!element || element.offsetWidth === 0 || element.offsetHeight === 0) {
+                map?.destroy();
+                map = null;
+
+                return;
+            }
+
+            if (map) {
+                map.updateSize?.();
+            } else {
+                renderMap();
+            }
+        });
     });
 
     syncPeriod();
