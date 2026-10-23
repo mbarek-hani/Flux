@@ -42,6 +42,27 @@ class StatisticsService
         ];
     }
 
+    /**
+     * @return array<string, int|float>
+     */
+    public function eventSummary(DateTimeInterface|string $start, DateTimeInterface|string $end): array
+    {
+        $base = Event::query()
+            ->where('site_id', $this->site->id)
+            ->whereBetween('created_at', [$start, $end]);
+
+        $total = (clone $base)->count();
+        $types = (clone $base)->distinct('name')->count('name');
+        $sessions = (clone $base)->distinct('session_id')->count('session_id');
+
+        return [
+            'total_events' => $total,
+            'event_types' => $types,
+            'sessions_with_events' => $sessions,
+            'events_per_session' => $sessions > 0 ? round($total / $sessions, 1) : 0,
+        ];
+    }
+
     public function topPages(DateTimeInterface|string $start, DateTimeInterface|string $end, int $limit = 10): Collection
     {
         return Visit::query()

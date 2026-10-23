@@ -67,10 +67,12 @@ class DashboardController extends Controller
 
         $site = Site::findOrFail($request->integer('site_id'));
         [$start, $end] = $this->calculatePeriod($request->string('period')->toString());
+        [$previousStart, $previousEnd] = $this->calculatePreviousPeriod($start, $end);
         $statistics = new StatisticsService($site);
 
         return response()->json([
             'summary' => $statistics->summary($start, $end),
+            'event_summary' => $statistics->eventSummary($start, $end),
             'evolution' => $statistics->dailyEvolution($start, $end),
             'top_pages' => $statistics->topPages($start, $end),
             'top_referrers' => $statistics->topReferrers($start, $end),
@@ -86,6 +88,14 @@ class DashboardController extends Controller
             'top_browsers' => $statistics->topParameter($start, $end, 'browser'),
             'top_browser_versions' => $statistics->topParameter($start, $end, 'browser_version'),
             'top_operating_systems' => $statistics->topParameter($start, $end, 'operating_system'),
+            'comparison' => [
+                'summary' => $statistics->summary($previousStart, $previousEnd),
+                'evolution' => $statistics->dailyEvolution($previousStart, $previousEnd),
+                'period' => [
+                    'start' => $previousStart->format('d/m/Y'),
+                    'end' => $previousEnd->format('d/m/Y'),
+                ],
+            ],
             'period' => [
                 'start' => $start->format('d/m/Y'),
                 'end' => $end->format('d/m/Y'),
@@ -105,5 +115,16 @@ class DashboardController extends Controller
             'this_year' => [Carbon::now()->startOfYear(), Carbon::now()],
             default => [Carbon::now()->subDays(7), Carbon::now()],
         };
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function calculatePreviousPeriod(Carbon $start, Carbon $end): array
+    {
+        $duration = (int) $start->diffInSeconds($end);
+        $previousEnd = $start->copy()->subSecond();
+
+        return [$previousEnd->copy()->subSeconds($duration), $previousEnd];
     }
 }
