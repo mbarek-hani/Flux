@@ -29,13 +29,26 @@
         @endforeach
     </div>
 
-    <select class="p-dash__period-mobile" data-dashboard-period-mobile aria-label="Date range">
-        @foreach($periods as $period)
-            <option value="{{ $period['value'] }}" @selected($period['value'] === '7d')>
-                {{ $period['label'] }}
-            </option>
-        @endforeach
-    </select>
+    <div class="p-dash__compact-controls">
+        <select class="p-dash__period-mobile" data-dashboard-period-mobile aria-label="Date range">
+            @foreach($periods as $period)
+                <option value="{{ $period['value'] }}" @selected($period['value'] === '7d')>
+                    {{ $period['label'] }}
+                </option>
+            @endforeach
+        </select>
+
+        <button
+            type="button"
+            class="p-dash__compare"
+            data-dashboard-compare
+            aria-pressed="false"
+            title="Compare with previous period"
+        >
+            <x-custom-icon name="arrows-right-left" class="c-icon--sm" />
+            <span class="p-dash__compare-label">Compare</span>
+        </button>
+    </div>
 </div>
 
 @if($toolbar !== [])

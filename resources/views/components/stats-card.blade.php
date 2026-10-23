@@ -4,7 +4,7 @@
     'icon' => null,
 ])
 
-<div class="c-stats-card">
+<div {{ $attributes->merge(['class' => 'c-stats-card']) }}>
     <div class="c-stats-card__content">
         @if($icon)
             <div class="c-stats-card__icon-wrapper">
@@ -13,7 +13,15 @@
         @endif
         <div class="c-stats-card__info">
             <p class="c-stats-card__title">{{ $title }}</p>
-            <p class="c-stats-card__value">{{ $value }}</p>
+            <div class="c-stats-card__value-row">
+                <p class="c-stats-card__value">{{ $value }}</p>
+                @isset($trend)
+                    <span class="c-stats-card__trend">{{ $trend }}</span>
+                @endisset
+            </div>
+            @isset($meta)
+                <p class="c-stats-card__meta">{{ $meta }}</p>
+            @endisset
         </div>
     </div>
 </div>

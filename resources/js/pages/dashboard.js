@@ -5,7 +5,24 @@ import 'jsvectormap/dist/maps/world.js';
 import { selectAll } from '../core/dom';
 import { requestJson } from '../core/http';
 
-const FALLBACK_PALETTE = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+const FALLBACK_PALETTE = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
+
+const TRAFFIC_METRICS = {
+    visitors: {
+        label: 'Visitors',
+        color: '--chart-traffic-1',
+        fallback: '#ff7711',
+        fill: '--chart-traffic-fill-1',
+        fallbackFill: 'rgba(55, 65, 81, 0.08)',
+    },
+    page_views: {
+        label: 'Page views',
+        color: '--chart-traffic-2',
+        fallback: '#9933ff',
+        fill: '--chart-traffic-fill-2',
+        fallbackFill: 'rgba(156, 163, 175, 0.08)',
+    },
+};
 
 function cssVar(name, fallback) {
     const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -15,6 +32,19 @@ function cssVar(name, fallback) {
 
 function formatNumber(value) {
     return new Intl.NumberFormat('en-GB').format(Number(value) || 0);
+}
+
+function formatDecimal(value) {
+    return new Intl.NumberFormat('en-GB', {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+    }).format(Number(value) || 0);
+}
+
+function formatPercent(value) {
+    return `${new Intl.NumberFormat('en-GB', {
+        maximumFractionDigits: 1,
+    }).format(Number(value) || 0)}%`;
 }
 
 function formatDuration(seconds) {
@@ -111,35 +141,23 @@ function faviconUrl(domain) {
     return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=16`;
 }
 
-function cell(text, className = '') {
-    const element = document.createElement('td');
-    element.textContent = text ?? '';
-    element.className = className;
+function emptyState(text) {
+    const element = document.createElement('p');
+    element.className = 'p-dash__empty';
+    element.textContent = text;
 
     return element;
 }
 
-function emptyRow(body, colspan, text) {
-    const row = document.createElement('tr');
-    const emptyCell = cell(text, 'p-dash__table-cell--center-lg');
-    emptyCell.colSpan = colspan;
-    row.append(emptyCell);
-    body.append(row);
-}
+function deltaFor(current, previous) {
+    const currentValue = Number(current) || 0;
+    const previousValue = Number(previous) || 0;
 
-function icon(name, src) {
-    if (!src) {
+    if (previousValue <= 0) {
         return null;
     }
 
-    const image = document.createElement('img');
-    image.src = src;
-    image.alt = '';
-    image.className = 'p-dash__favicon';
-    image.loading = 'lazy';
-    image.dataset.icon = name;
-
-    return image;
+    return ((currentValue - previousValue) / previousValue) * 100;
 }
 
 function initDashboardElement(root) {
@@ -157,6 +175,8 @@ function initDashboardElement(root) {
     const siteSelect = root.querySelector('[data-dashboard-site]');
     const periodButtons = selectAll('[data-dashboard-period]', root);
     const periodSelect = root.querySelector('[data-dashboard-period-mobile]');
+    const compareButton = root.querySelector('[data-dashboard-compare]');
+    const metricButtons = selectAll('[data-dashboard-traffic-metric]', root);
 
     let siteId = root.dataset.siteId ?? '';
     let period = root.dataset.period ?? '7d';
@@ -164,6 +184,8 @@ function initDashboardElement(root) {
     let requestSequence = 0;
     let charts = {};
     let map = null;
+    let compareEnabled = false;
+    let trafficMetric = 'visitors';
 
     const setLoading = (state) => {
         if (loading) {
@@ -185,16 +207,22 @@ function initDashboardElement(root) {
         });
     };
 
-    const tableBody = (name) => {
-        const body = root.querySelector(`[data-dashboard-table="${name}"]`);
-
-        body?.replaceChildren();
-
-        return body;
+    const setMeta = (name, value) => {
+        selectAll(`[data-dashboard-meta="${name}"]`, root).forEach((element) => {
+            element.textContent = value;
+        });
     };
 
+    const setGlance = (name, value) => {
+        selectAll(`[data-dashboard-glance="${name}"]`, root).forEach((element) => {
+            element.textContent = value;
+        });
+    };
+
+    const listContainer = (name) => root.querySelector(`[data-dashboard-list="${name}"]`);
+
     const palette = () => {
-        return Array.from({ length: 5 }, (_, index) => {
+        return Array.from({ length: 6 }, (_, index) => {
             return cssVar(`--chart-${index + 1}`, FALLBACK_PALETTE[index]);
         });
     };
@@ -210,337 +238,430 @@ function initDashboardElement(root) {
         }
     };
 
+    const renderRankList = (name, items, options = {}) => {
+        const container = listContainer(name);
+
+        if (!container) {
+            return;
+        }
+
+        container.replaceChildren();
+
+        const rows = Array.isArray(items) ? items.slice(0, options.limit ?? 6) : [];
+
+        if (rows.length === 0) {
+            container.append(emptyState(options.empty ?? 'No data'));
+            return;
+        }
+
+        const values = rows.map((row) => Number(row?.[options.valueKey] ?? 0) || 0);
+        const max = Math.max(...values, 0);
+        const total = options.shareBase ?? values.reduce((sum, value) => sum + value, 0);
+
+        rows.forEach((row, index) => {
+            const value = values[index];
+            const labelText = String(options.label?.(row) ?? row?.[options.labelKey] ?? '—');
+            const metaText = String(options.meta?.(row) ?? '');
+            const iconUrl = options.icon?.(row) ?? '';
+            const share = total > 0 ? (value / total) * 100 : 0;
+            const width = max > 0 ? (value / max) * 100 : 0;
+
+            const item = document.createElement('div');
+            item.className = 'p-dash__rank';
+
+            const top = document.createElement('div');
+            top.className = 'p-dash__rank-top';
+
+            const labelWrap = document.createElement('div');
+            labelWrap.className = 'p-dash__rank-label-wrap';
+
+            if (options.color) {
+                const dot = document.createElement('span');
+                dot.className = 'p-dash__evt-dot';
+                dot.style.backgroundColor = options.color(row, index);
+                labelWrap.append(dot);
+            }
+
+            if (iconUrl) {
+                const image = document.createElement('img');
+                image.src = iconUrl;
+                image.alt = '';
+                image.loading = 'lazy';
+                image.className = 'p-dash__favicon';
+                labelWrap.append(image);
+            }
+
+            const label = document.createElement('span');
+            label.className = 'p-dash__rank-label';
+            label.textContent = labelText || '—';
+            label.title = labelText;
+            labelWrap.append(label);
+
+            const valueElement = document.createElement('span');
+            valueElement.className = 'p-dash__rank-value';
+            valueElement.textContent = options.formatValue?.(value) ?? formatNumber(value);
+            top.append(labelWrap, valueElement);
+
+            const meta = document.createElement('div');
+            meta.className = 'p-dash__rank-meta';
+
+            const metaLabel = document.createElement('span');
+            metaLabel.textContent = metaText;
+            const shareLabel = document.createElement('span');
+            shareLabel.className = 'p-dash__rank-share';
+            shareLabel.textContent = formatPercent(share);
+            meta.append(metaLabel, shareLabel);
+
+            const bar = document.createElement('div');
+            bar.className = 'p-dash__rank-bar';
+            const fill = document.createElement('span');
+            fill.className = 'p-dash__rank-fill';
+            fill.style.width = `${Math.max(0, Math.min(100, width))}%`;
+            bar.append(fill);
+
+            item.append(top, meta, bar);
+            container.append(item);
+        });
+    };
+
+    const renderActivity = (name, items, limit = 8) => {
+        const container = listContainer(name);
+
+        if (!container) {
+            return;
+        }
+
+        container.replaceChildren();
+
+        const events = Array.isArray(items) ? items.slice(0, limit) : [];
+
+        if (events.length === 0) {
+            container.append(emptyState('No events yet'));
+            return;
+        }
+
+        events.forEach((event) => {
+            const row = document.createElement('div');
+            row.className = 'p-dash__activity-row';
+
+            const badge = document.createElement('span');
+            badge.className = 'p-dash__evt-badge';
+            badge.textContent = event.name ?? '—';
+
+            const path = document.createElement('span');
+            path.className = 'p-dash__activity-path';
+            path.textContent = event.path ?? '—';
+            path.title = event.path ?? '';
+
+            const time = document.createElement('span');
+            time.className = 'p-dash__activity-time';
+            time.textContent = formatDateTime(event.created_at);
+
+            row.append(badge, path, time);
+            container.append(row);
+        });
+    };
+
+    const renderTrends = () => {
+        const summary = stats?.summary ?? {};
+        const previous = stats?.comparison?.summary ?? {};
+
+        selectAll('[data-dashboard-trend]', root).forEach((element) => {
+            const key = element.dataset.dashboardTrend;
+            const delta = compareEnabled ? deltaFor(summary?.[key], previous?.[key]) : null;
+
+            element.classList.remove('is-good', 'is-bad', 'is-neutral');
+            element.hidden = delta === null;
+
+            if (delta === null) {
+                element.textContent = '';
+                return;
+            }
+
+            const rounded = Math.abs(delta) < 0.05 ? 0 : delta;
+            const sign = rounded > 0 ? '+' : '';
+            element.textContent = `${sign}${new Intl.NumberFormat('en-GB', {
+                maximumFractionDigits: 1,
+            }).format(rounded)}%`;
+
+            if (rounded === 0) {
+                element.classList.add('is-neutral');
+            } else {
+                const lowerIsBetter = key === 'bounce_rate';
+                const good = lowerIsBetter ? rounded < 0 : rounded > 0;
+                element.classList.add(good ? 'is-good' : 'is-bad');
+            }
+
+            element.title = 'Compared with the previous period';
+        });
+    };
+
+    const renderChartNote = () => {
+        const note = root.querySelector('[data-dashboard-chart-note]');
+
+        if (!note) {
+            return;
+        }
+
+        const previousPeriod = stats?.comparison?.period;
+
+        if (!compareEnabled || !previousPeriod) {
+            note.hidden = true;
+            note.textContent = '';
+            return;
+        }
+
+        note.hidden = false;
+        note.textContent = `Compared with ${previousPeriod.start} – ${previousPeriod.end}`;
+    };
+
     const renderSummary = () => {
         const summary = stats?.summary ?? {};
+        const visitors = Number(summary.unique_visitors) || 0;
+        const pageViews = Number(summary.page_views) || 0;
+        const newSessions = Number(summary.new_sessions) || 0;
 
-        setStat('unique_visitors', formatNumber(summary.unique_visitors));
-        setStat('page_views', formatNumber(summary.page_views));
+        setStat('unique_visitors', formatNumber(visitors));
+        setStat('page_views', formatNumber(pageViews));
         setStat('bounce_rate', `${summary.bounce_rate ?? 0}%`);
         setStat('average_duration', formatDuration(summary.average_duration));
+
+        setMeta('new_sessions', `${formatNumber(newSessions)} new sessions`);
+        setMeta('pages_per_visitor', `${formatDecimal(visitors > 0 ? pageViews / visitors : 0)} pages / visitor`);
+        setMeta('bounce_context', `Across ${formatNumber(visitors)} visitors`);
+
+        renderTrends();
+        renderChartNote();
+    };
+
+    const renderGlance = () => {
+        const summary = stats?.summary ?? {};
+        const eventSummary = stats?.event_summary ?? {};
+        const visitors = Number(summary.unique_visitors) || 0;
+        const pageViews = Number(summary.page_views) || 0;
+        const newSessions = Number(summary.new_sessions) || 0;
+        const eventSessions = Number(eventSummary.sessions_with_events) || 0;
+
+        setGlance('new_sessions', formatNumber(newSessions));
+        setGlance('returning_visitors', formatNumber(Math.max(visitors - newSessions, 0)));
+        setGlance('pages_per_visitor', formatDecimal(visitors > 0 ? pageViews / visitors : 0));
+        setGlance('total_events', formatNumber(eventSummary.total_events));
+        setGlance('event_sessions', `Across ${formatNumber(eventSessions)} sessions`);
     };
 
     const renderEventSummary = () => {
-        const events = stats?.events_by_name ?? [];
-        const total = events.reduce((sum, event) => sum + (Number(event.total) || 0), 0);
-        const sessions = events.reduce((sum, event) => sum + (Number(event.sessions) || 0), 0);
+        const summary = stats?.summary ?? {};
+        const eventSummary = stats?.event_summary ?? {};
+        const visitors = Number(summary.unique_visitors) || 0;
+        const eventSessions = Number(eventSummary.sessions_with_events) || 0;
+        const share = visitors > 0 ? Math.round((eventSessions / visitors) * 100) : 0;
 
-        setStat('total_events', formatNumber(total));
-        setStat('event_types', formatNumber(events.length));
-        setStat('active_sessions', formatNumber(sessions));
-        setStat('events_per_session', sessions > 0 ? (total / sessions).toFixed(1) : '0');
-    };
+        setStat('total_events', formatNumber(eventSummary.total_events));
+        setStat('events_per_session', formatDecimal(eventSummary.events_per_session));
+        setStat('event_types', formatNumber(eventSummary.event_types));
+        setStat('sessions_with_events', formatNumber(eventSessions));
 
-    const renderTopPages = () => {
-        const body = tableBody('top_pages');
-        const pages = (stats?.top_pages ?? []).slice(0, 8);
-
-        if (!body) return;
-
-        if (pages.length === 0) {
-            emptyRow(body, 2, 'No data');
-            return;
-        }
-
-        pages.forEach((page) => {
-            const row = document.createElement('tr');
-            row.append(
-                cell(page.path ?? '—', 'p-dash__table-cell--truncate'),
-                cell(formatNumber(page.views), 'p-dash__table-cell--right'),
-            );
-            body.append(row);
-        });
-    };
-
-    const renderReferrers = () => {
-        const body = tableBody('top_referrers');
-        const referrers = (stats?.top_referrers ?? []).slice(0, 8);
-
-        if (!body) return;
-
-        if (referrers.length === 0) {
-            emptyRow(body, 2, 'No referrer');
-            return;
-        }
-
-        referrers.forEach((referrer) => {
-            const row = document.createElement('tr');
-            const sourceCell = document.createElement('td');
-            const wrapper = document.createElement('div');
-            wrapper.className = 'p-dash__list-name';
-            const domain = referrer.referrer_domain ?? '';
-            const favicon = icon('referrer', domain ? faviconUrl(domain) : '');
-            const label = document.createElement('span');
-            label.className = 'p-dash__table-cell--truncate';
-            label.textContent = domain || 'Direct';
-
-            if (favicon) {
-                wrapper.append(favicon);
-            }
-
-            wrapper.append(label);
-            sourceCell.append(wrapper);
-            row.append(sourceCell, cell(formatNumber(referrer.visitors), 'p-dash__table-cell--right'));
-            body.append(row);
-        });
-    };
-
-    const renderParameterTable = (name, key, itemKey, emptyText = 'No data') => {
-        const body = tableBody(name);
-        const rows = (stats?.[key] ?? []).slice(0, 5);
-
-        if (!body) return;
-
-        if (rows.length === 0) {
-            emptyRow(body, 2, emptyText);
-            return;
-        }
-
-        rows.forEach((item) => {
-            const row = document.createElement('tr');
-            const labelCell = document.createElement('td');
-            const label = item[itemKey] ?? '';
-
-            if (name === 'utm_sources') {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'p-dash__list-name';
-                const favicon = icon('utm', utmIcon(label));
-
-                if (favicon) {
-                    wrapper.append(favicon);
-                }
-
-                const text = document.createElement('span');
-                text.className = 'p-dash__table-cell--truncate';
-                text.textContent = label || '—';
-                wrapper.append(text);
-                labelCell.append(wrapper);
-            } else {
-                labelCell.className = 'p-dash__table-cell--truncate';
-                labelCell.textContent = label || '—';
-            }
-
-            row.append(labelCell, cell(formatNumber(item.visitors), 'p-dash__table-cell--right'));
-            body.append(row);
-        });
-    };
-
-    const renderBrowserTables = () => {
-        const browserBody = tableBody('top_browsers');
-        const browserRows = (stats?.top_browsers ?? []).slice(0, 5);
-
-        if (browserBody) {
-            if (browserRows.length === 0) {
-                emptyRow(browserBody, 2, 'No data');
-            } else {
-                browserRows.forEach((browser) => {
-                    const row = document.createElement('tr');
-                    const labelCell = document.createElement('td');
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'p-dash__list-name';
-                    const favicon = icon('browser', browserIcon(browser.browser));
-                    const label = document.createElement('span');
-                    label.className = 'p-dash__table-cell--truncate';
-                    label.textContent = browser.browser ?? '—';
-
-                    if (favicon) {
-                        wrapper.append(favicon);
-                    }
-
-                    wrapper.append(label);
-                    labelCell.append(wrapper);
-                    row.append(labelCell, cell(formatNumber(browser.visitors), 'p-dash__table-cell--right'));
-                    browserBody.append(row);
-                });
-            }
-        }
-
-        const osBody = tableBody('top_operating_systems');
-        const osRows = (stats?.top_operating_systems ?? []).slice(0, 5);
-
-        if (!osBody) return;
-
-        if (osRows.length === 0) {
-            emptyRow(osBody, 2, 'No data');
-            return;
-        }
-
-        osRows.forEach((system) => {
-            const row = document.createElement('tr');
-            const labelCell = document.createElement('td');
-            const wrapper = document.createElement('div');
-            wrapper.className = 'p-dash__list-name';
-            const favicon = icon('os', operatingSystemIcon(system.operating_system));
-            const label = document.createElement('span');
-            label.className = 'p-dash__table-cell--truncate';
-            label.textContent = system.operating_system ?? '—';
-
-            if (favicon) {
-                wrapper.append(favicon);
-            }
-
-            wrapper.append(label);
-            labelCell.append(wrapper);
-            row.append(labelCell, cell(formatNumber(system.visitors), 'p-dash__table-cell--right'));
-            osBody.append(row);
-        });
+        setMeta('event_sessions', `Across ${formatNumber(eventSessions)} sessions`);
+        setMeta('event_session_share', `${share}% of visitors`);
     };
 
     const renderDevices = () => {
         const legend = root.querySelector('[data-dashboard-devices]');
         const devices = stats?.devices ?? [];
 
-        if (!legend) return;
+        if (!legend) {
+            return;
+        }
 
         legend.replaceChildren();
 
         if (devices.length === 0) {
-            const empty = document.createElement('p');
-            empty.className = 'p-text';
-            empty.textContent = 'No data';
-            legend.append(empty);
+            legend.append(emptyState('No data'));
             return;
         }
+
+        const total = devices.reduce((sum, device) => sum + (Number(device.visitors) || 0), 0);
 
         devices.forEach((device) => {
             const row = document.createElement('div');
             row.className = 'p-dash__device-row';
+
             const name = document.createElement('span');
             name.className = 'p-dash__device-name';
             name.textContent = device.device ?? '—';
+
+            const values = document.createElement('span');
+            values.className = 'p-dash__device-values';
+
             const count = document.createElement('span');
-            count.className = 'p-dash__device-count';
             count.textContent = formatNumber(device.visitors);
-            row.append(name, count);
+
+            const share = document.createElement('span');
+            share.className = 'p-dash__device-share';
+            share.textContent = formatPercent(total > 0 ? (Number(device.visitors) / total) * 100 : 0);
+
+            values.append(count, share);
+            row.append(name, values);
             legend.append(row);
         });
     };
 
-    const renderEventTypes = () => {
-        const body = tableBody('event_types');
-        const events = (stats?.events_by_name ?? []).slice(0, 5);
-        const total = (stats?.events_by_name ?? []).reduce((sum, event) => sum + (Number(event.total) || 0), 0);
+    const renderLists = () => {
+        const summary = stats?.summary ?? {};
+        const eventSummary = stats?.event_summary ?? {};
+        const totalVisitors = Number(summary.unique_visitors) || 0;
+        const totalPageViews = Number(summary.page_views) || 0;
+        const totalEvents = Number(eventSummary.total_events) || 0;
         const colors = palette();
 
-        if (!body) return;
-
-        if (events.length === 0) {
-            emptyRow(body, 3, 'No data');
-            return;
-        }
-
-        events.forEach((event, index) => {
-            const row = document.createElement('tr');
-            row.className = 'p-dash__evt-row';
-
-            const nameCell = document.createElement('td');
-            nameCell.className = 'p-row';
-            const dot = document.createElement('div');
-            dot.className = 'p-dash__evt-dot';
-            dot.style.backgroundColor = colors[index % colors.length];
-            const name = document.createElement('span');
-            name.className = 'p-dash__evt-name';
-            name.textContent = event.name ?? '—';
-            nameCell.append(dot, name);
-
-            const percentage = total > 0 ? Math.round((Number(event.total) / total) * 100) : 0;
-
-            row.append(
-                nameCell,
-                cell(formatNumber(event.total), 'p-dash__table-cell--right'),
-                cell(`${percentage}%`, 'p-dash__table-cell--muted'),
-            );
-            body.append(row);
+        renderRankList('top_pages', stats?.top_pages, {
+            limit: 6,
+            labelKey: 'path',
+            valueKey: 'views',
+            shareBase: totalPageViews,
+            meta: (row) => `${formatNumber(row.visitors)} visitors`,
+            empty: 'No page data',
         });
-    };
 
-    const renderEventPages = () => {
-        const body = tableBody('event_pages');
-        const pages = (stats?.events_by_page ?? []).slice(0, 6);
-
-        if (!body) return;
-
-        if (pages.length === 0) {
-            emptyRow(body, 2, 'No contextual data');
-            return;
-        }
-
-        pages.forEach((page) => {
-            const row = document.createElement('tr');
-            row.append(
-                cell(page.path ?? '—', 'p-dash__table-cell--truncate'),
-                cell(formatNumber(page.total), 'p-dash__table-cell--mono'),
-            );
-            body.append(row);
+        renderRankList('acquisition_referrers', stats?.top_referrers, {
+            limit: 6,
+            labelKey: 'referrer_domain',
+            valueKey: 'visitors',
+            label: (row) => row.referrer_domain || 'Direct',
+            icon: (row) => row.referrer_domain ? faviconUrl(row.referrer_domain) : '',
+            empty: 'No referrer data',
         });
-    };
 
-    const renderLatestEvents = () => {
-        const body = tableBody('latest_events');
-        const events = (stats?.latest_events ?? []).slice(0, 8);
-
-        if (!body) return;
-
-        if (events.length === 0) {
-            emptyRow(body, 3, 'No events yet');
-            return;
-        }
-
-        events.forEach((event) => {
-            const row = document.createElement('tr');
-            const nameCell = document.createElement('td');
-            const badge = document.createElement('span');
-            badge.className = 'p-dash__evt-badge';
-            badge.textContent = event.name ?? '—';
-            nameCell.append(badge);
-            row.append(
-                nameCell,
-                cell(event.path ?? '—', 'p-dash__table-cell--truncate p-dash__table-cell--path'),
-                cell(formatDateTime(event.created_at), 'p-dash__table-cell--muted'),
-            );
-            body.append(row);
+        renderRankList('acquisition_sources', stats?.top_utm_sources, {
+            limit: 6,
+            labelKey: 'utm_source',
+            valueKey: 'visitors',
+            icon: (row) => utmIcon(row.utm_source),
+            empty: 'No source data',
         });
+
+        renderRankList('acquisition_mediums', stats?.top_utm_mediums, {
+            limit: 6,
+            labelKey: 'utm_medium',
+            valueKey: 'visitors',
+            empty: 'No medium data',
+        });
+
+        renderRankList('acquisition_campaigns', stats?.top_utm_campaigns, {
+            limit: 6,
+            labelKey: 'utm_campaign',
+            valueKey: 'visitors',
+            empty: 'No campaign data',
+        });
+
+        renderRankList('countries', stats?.top_countries, {
+            limit: 5,
+            labelKey: 'country_name',
+            valueKey: 'visitors',
+            shareBase: totalVisitors,
+            label: (row) => row.country_name || row.country_code || 'Unknown',
+            meta: (row) => row.country_code || '',
+            empty: 'No country data',
+        });
+
+        renderRankList('browsers', stats?.top_browsers, {
+            limit: 5,
+            labelKey: 'browser',
+            valueKey: 'visitors',
+            icon: (row) => browserIcon(row.browser),
+            empty: 'No browser data',
+        });
+
+        renderRankList('operating_systems', stats?.top_operating_systems, {
+            limit: 5,
+            labelKey: 'operating_system',
+            valueKey: 'visitors',
+            icon: (row) => operatingSystemIcon(row.operating_system),
+            empty: 'No system data',
+        });
+
+        renderRankList('event_types', stats?.events_by_name, {
+            limit: 5,
+            labelKey: 'name',
+            valueKey: 'total',
+            shareBase: totalEvents,
+            meta: (row) => `${formatNumber(row.sessions)} sessions`,
+            color: (row, index) => colors[index % colors.length],
+            empty: 'No event data',
+        });
+
+        renderRankList('event_pages', stats?.events_by_page, {
+            limit: 6,
+            labelKey: 'path',
+            valueKey: 'total',
+            shareBase: totalEvents,
+            meta: () => 'events',
+            empty: 'No contextual data',
+        });
+
+        renderActivity('latest_events_overview', stats?.latest_events, 6);
+        renderActivity('latest_events', stats?.latest_events, 8);
     };
 
     const renderTrafficChart = () => {
         const canvas = root.querySelector('[data-dashboard-chart="traffic"]');
-        const data = stats?.evolution ?? [];
+        const current = stats?.evolution ?? [];
+        const previous = stats?.comparison?.evolution ?? [];
+        const metric = TRAFFIC_METRICS[trafficMetric] ?? TRAFFIC_METRICS.visitors;
+        const datasets = [{
+            label: metric.label,
+            data: current.map((entry) => entry[trafficMetric]),
+            borderColor: cssVar(metric.color, metric.fallback),
+            backgroundColor: cssVar(metric.fill, metric.fallbackFill),
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 3,
+        }];
+
+        if (compareEnabled && previous.length > 0) {
+            datasets.push({
+                label: `Previous ${metric.label.toLowerCase()}`,
+                data: previous.map((entry) => entry[trafficMetric]),
+                borderColor: cssVar('--gray-400', '#9ca3af'),
+                backgroundColor: 'transparent',
+                fill: false,
+                tension: 0.35,
+                borderWidth: 1.5,
+                borderDash: [5, 5],
+                pointRadius: 0,
+                pointHoverRadius: 3,
+            });
+        }
 
         chart('traffic', canvas, {
             type: 'line',
             data: {
-                labels: data.map((entry) => formatDay(entry.date)),
-                datasets: [
-                    {
-                        label: 'Visitors',
-                        data: data.map((entry) => entry.visitors),
-                        borderColor: cssVar('--chart-traffic-1', '#ff7711'),
-                        backgroundColor: cssVar('--chart-traffic-fill-1', 'rgba(55, 65, 81, 0.05)'),
-                        fill: true,
-                        tension: 0.3,
-                        borderWidth: 2,
-                        pointRadius: 2,
-                    },
-                    {
-                        label: 'Page views',
-                        data: data.map((entry) => entry.page_views),
-                        borderColor: cssVar('--chart-traffic-2', '#9933ff'),
-                        backgroundColor: cssVar('--chart-traffic-fill-2', 'rgba(156, 163, 175, 0.05)'),
-                        fill: true,
-                        tension: 0.3,
-                        borderWidth: 2,
-                        pointRadius: 2,
-                    },
-                ],
+                labels: current.map((entry) => formatDay(entry.date)),
+                datasets,
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 interaction: { intersect: false, mode: 'index' },
-                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
                 plugins: {
                     legend: {
-                        position: 'top',
-                        labels: { usePointStyle: true, padding: 15, font: { size: 11 } },
+                        display: compareEnabled,
+                        position: 'bottom',
+                        labels: { usePointStyle: true, padding: 14, font: { size: 11 } },
+                    },
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { maxTicksLimit: 6, maxRotation: 0, autoSkip: true },
+                    },
+                    y: {
+                        beginAtZero: true,
+                        border: { display: false },
+                        grid: { color: cssVar('--chart-grid', 'rgba(107, 114, 128, 0.15)') },
+                        ticks: { precision: 0, maxTicksLimit: 6 },
                     },
                 },
             },
@@ -568,8 +689,8 @@ function initDashboardElement(root) {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
-                cutout: '60%',
+                maintainAspectRatio: false,
+                cutout: '64%',
                 plugins: { legend: { display: false } },
             },
         });
@@ -589,9 +710,10 @@ function initDashboardElement(root) {
                     borderColor: cssVar('--chart-events', '#6366f1'),
                     backgroundColor: cssVar('--chart-events-fill', 'rgba(99, 102, 241, 0.1)'),
                     fill: true,
-                    tension: 0.4,
-                    borderWidth: 3,
-                    pointRadius: 3,
+                    tension: 0.35,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 3,
                 }],
             },
             options: {
@@ -599,8 +721,16 @@ function initDashboardElement(root) {
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true, grid: { display: false } },
-                    x: { grid: { display: false } },
+                    x: {
+                        grid: { display: false },
+                        ticks: { maxTicksLimit: 6, maxRotation: 0, autoSkip: true },
+                    },
+                    y: {
+                        beginAtZero: true,
+                        border: { display: false },
+                        grid: { color: cssVar('--chart-grid', 'rgba(107, 114, 128, 0.15)') },
+                        ticks: { precision: 0, maxTicksLimit: 6 },
+                    },
                 },
             },
         });
@@ -608,8 +738,7 @@ function initDashboardElement(root) {
 
     const renderEventTypesChart = () => {
         const canvas = root.querySelector('[data-dashboard-chart="event-types"]');
-        const data = stats?.events_by_name ?? [];
-        const colors = palette();
+        const data = (stats?.events_by_name ?? []).slice(0, 6);
 
         chart('event-types', canvas, {
             type: 'doughnut',
@@ -617,15 +746,15 @@ function initDashboardElement(root) {
                 labels: data.map((event) => event.name),
                 datasets: [{
                     data: data.map((event) => event.total),
-                    backgroundColor: colors,
+                    backgroundColor: palette(),
                     borderWidth: 2,
                     borderColor: cssVar('--chart-border', '#ffffff'),
                 }],
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
-                cutout: '75%',
+                maintainAspectRatio: false,
+                cutout: '70%',
                 plugins: { legend: { display: false } },
             },
         });
@@ -694,19 +823,20 @@ function initDashboardElement(root) {
         });
     };
 
+    const syncTrafficMetric = () => {
+        metricButtons.forEach((button) => {
+            const active = button.dataset.dashboardTrafficMetric === trafficMetric;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+    };
+
     const renderAll = () => {
         renderSummary();
+        renderGlance();
         renderEventSummary();
-        renderTopPages();
-        renderReferrers();
-        renderParameterTable('utm_sources', 'top_utm_sources', 'utm_source');
-        renderParameterTable('utm_mediums', 'top_utm_mediums', 'utm_medium');
-        renderParameterTable('utm_campaigns', 'top_utm_campaigns', 'utm_campaign');
-        renderBrowserTables();
+        renderLists();
         renderDevices();
-        renderEventTypes();
-        renderEventPages();
-        renderLatestEvents();
         renderTrafficChart();
         renderDevicesChart();
         renderEventsChart();
@@ -795,13 +925,52 @@ function initDashboardElement(root) {
         loadStats();
     });
 
+    compareButton?.addEventListener('click', () => {
+        compareEnabled = !compareEnabled;
+        compareButton.classList.toggle('is-active', compareEnabled);
+        compareButton.setAttribute('aria-pressed', compareEnabled ? 'true' : 'false');
+        renderSummary();
+        renderTrafficChart();
+    });
+
+    metricButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const metric = button.dataset.dashboardTrafficMetric;
+
+            if (!metric || metric === trafficMetric) {
+                return;
+            }
+
+            trafficMetric = metric;
+            syncTrafficMetric();
+            renderTrafficChart();
+        });
+    });
+
+    let resizeFrame = null;
+
+    window.addEventListener('resize', () => {
+        if (resizeFrame !== null) {
+            window.cancelAnimationFrame(resizeFrame);
+        }
+
+        resizeFrame = window.requestAnimationFrame(() => {
+            resizeFrame = null;
+            map?.updateSize?.();
+        });
+    }, { passive: true });
+
     document.addEventListener('flux:tab-changed', (event) => {
-        if (event.detail.group !== 'dashboard' || event.detail.target !== 'overview') {
+        if (event.detail.group !== 'dashboard') {
             return;
         }
 
         window.requestAnimationFrame(() => {
             Object.values(charts).forEach((instance) => instance?.resize());
+
+            if (event.detail.target !== 'overview') {
+                return;
+            }
 
             const element = root.querySelector('[data-dashboard-map]');
 
@@ -821,6 +990,7 @@ function initDashboardElement(root) {
     });
 
     syncPeriod();
+    syncTrafficMetric();
     loadStats();
 }
 

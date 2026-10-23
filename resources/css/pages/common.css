@@ -31,6 +31,7 @@
 .p-container--sm { max-width: 36rem; margin-left: auto; margin-right: auto; }
 .p-container--md { max-width: 48rem; margin-left: auto; margin-right: auto; }
 .p-container--lg { max-width: 72rem; margin-left: auto; margin-right: auto; }
+.p-container--xl { max-width: 84rem; margin-left: auto; margin-right: auto; }
 
 /* Page title */
 .p-page__title {

@@ -4,9 +4,14 @@
 ])
 
 <div {{ $attributes->merge(['class' => 'c-card']) }}>
-    @if($title)
+    @if($title || isset($actions))
         <div class="c-card__header">
-            <h3 class="c-card__title">{{ $title }}</h3>
+            @if($title)
+                <h3 class="c-card__title">{{ $title }}</h3>
+            @endif
+            @isset($actions)
+                <div class="c-card__actions">{{ $actions }}</div>
+            @endisset
         </div>
     @endif
 

@@ -2,10 +2,10 @@
     <x-slot name="title">{{ $title }}</x-slot>
 
     <div class="p-page">
-        <div class="p-container p-container--lg">
-            <h2 class="p-page__title">{{ $title }}</h2>
-
+        <div class="p-container p-container--xl">
             @if($noSite)
+                <h2 class="p-page__title p-dash__title">{{ $title }}</h2>
+
                 <x-card>
                     <div class="p-empty">
                         <x-custom-icon name="globe" class="p-empty__icon" />
@@ -26,7 +26,16 @@
                     data-stats-url="{{ route('dashboard.stats') }}"
                     data-period="7d"
                 >
-                    @include('dashboard.partials.controls')
+                    <div class="p-dash__header">
+                        <div class="p-dash__heading">
+                            <h2 class="p-page__title p-dash__title">{{ $title }}</h2>
+                            <p class="p-dash__subtitle">{{ $currentSite->name }} · {{ $currentSite->domain }}</p>
+                        </div>
+
+                        <div class="p-dash__header-controls">
+                            @include('dashboard.partials.controls')
+                        </div>
+                    </div>
 
                     <div data-tabs="dashboard">
                         @include('dashboard.partials.tabs')

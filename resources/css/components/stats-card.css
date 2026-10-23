@@ -25,6 +25,7 @@
 
 .c-stats-card__info {
     min-width: 0;
+    width: 100%;
 }
 
 .c-stats-card__title {
@@ -37,12 +38,47 @@
     margin: 0;
 }
 
+.c-stats-card__value-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+
 .c-stats-card__value {
     font-size: 1.125rem;
     font-weight: 700;
     color: var(--gray-900);
     margin-top: 0.125rem;
     margin-bottom: 0;
+    overflow-wrap: anywhere;
+}
+
+.c-stats-card__trend {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--gray-500);
+}
+
+.c-stats-card__trend.is-good {
+    color: var(--success-text);
+}
+
+.c-stats-card__trend.is-bad {
+    color: var(--error-text);
+}
+
+.c-stats-card__trend.is-neutral {
+    color: var(--gray-500);
+}
+
+.c-stats-card__meta {
+    margin: 0.125rem 0 0;
+    font-size: 0.6875rem;
+    color: var(--gray-500);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 }
