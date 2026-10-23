@@ -10,6 +10,7 @@ import { initDropdowns } from './components/dropdown';
 import { initFlashes } from './components/flash';
 import { closeModal, initModals, openModal, setupModalGlobalListeners } from './components/modal';
 import { initSidebar } from './components/sidebar';
+import { initTabOverflow } from './components/tab-overflow';
 import { initTabs } from './components/tabs';
 import { initThemeSwitchers } from './components/theme-switcher';
 import { initDashboard } from './pages/dashboard';
@@ -31,6 +32,7 @@ export function initComponents(root = document) {
     initModals(root);
     initSidebar(root);
     initTabs(root);
+    initTabOverflow(root);
     initThemeSwitchers(root);
     initDashboard(root);
     initMarketplace(root);

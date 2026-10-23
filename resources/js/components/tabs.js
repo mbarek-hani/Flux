@@ -73,17 +73,22 @@ export function initTabs(root = document) {
             });
 
             trigger.addEventListener('keydown', (event) => {
-                const currentIndex = triggers.indexOf(trigger);
+                const navigable = triggers.filter((item) => item.offsetParent !== null);
+                const currentIndex = navigable.indexOf(trigger);
                 let nextIndex = null;
 
+                if (currentIndex === -1) {
+                    return;
+                }
+
                 if (event.key === 'ArrowRight') {
-                    nextIndex = (currentIndex + 1) % triggers.length;
+                    nextIndex = (currentIndex + 1) % navigable.length;
                 } else if (event.key === 'ArrowLeft') {
-                    nextIndex = (currentIndex - 1 + triggers.length) % triggers.length;
+                    nextIndex = (currentIndex - 1 + navigable.length) % navigable.length;
                 } else if (event.key === 'Home') {
                     nextIndex = 0;
                 } else if (event.key === 'End') {
-                    nextIndex = triggers.length - 1;
+                    nextIndex = navigable.length - 1;
                 }
 
                 if (nextIndex === null) {
@@ -91,7 +96,7 @@ export function initTabs(root = document) {
                 }
 
                 event.preventDefault();
-                const next = triggers[nextIndex];
+                const next = navigable[nextIndex];
                 activate(tabs, next.dataset.tabTarget);
                 next.focus();
             });
