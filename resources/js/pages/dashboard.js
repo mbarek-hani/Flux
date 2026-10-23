@@ -769,6 +769,7 @@ function initDashboardElement(root) {
 
         map?.destroy();
         map = null;
+        element.replaceChildren();
 
         if (element.offsetWidth === 0 || element.offsetHeight === 0) {
             return;
